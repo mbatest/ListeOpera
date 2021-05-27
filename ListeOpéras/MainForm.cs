@@ -7,7 +7,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
-//using System.Windows;
 using System.Windows.Forms;
 using PVS.MediaPlayer;
 
@@ -15,18 +14,24 @@ namespace ListeOpéras
 {
     public partial class MainForm : Form
     {
-        Modèle md = new Modèle();
-        string BasePath = @"M:\Opéras";
-        ImageList imagesMusiciens;
-        int Confirmé = 0;
-        int nbBD;
-        int nbCompositeurs;
-        int nbOpéras;
+        public static Modèle md = new Modèle();
+        public static ImageList imagesMusiciens;
+        readonly string BasePath = @"M:\Opéras";
+        public static string chrome;
+        BackgroundWorker worker;
         SplashScreen spl;
         public static string BOM = Encoding.Unicode.GetString(Encoding.Unicode.GetPreamble());
         public MainForm()
         {
             InitializeComponent();
+            //foreach(Marqueurs mk in md.Marqueurs)
+            //{
+            //    mk.Date = TimeSpan.FromTicks((long)mk.Adresse).ToString();
+            //}
+            //md.SaveChanges();
+            Cursor = Cursors.WaitCursor;
+            chrome =  Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Google\Chrome\Application\chrome.exe";
+            splitFichiers.Panel2Collapsed = true;
             splitContainer1.Panel2Collapsed = true;
             int length = md.Disques.Sum(c => (int)c.Durée);
             int heures = length / 60;
@@ -35,57 +40,65 @@ namespace ListeOpéras
             TreeView.CheckForIllegalCrossThreadCalls = false;
             #region Initialisation Liste d'images
             imagesMusiciens = new ImageList();
-            imagesMusiciens.ImageSize = new System.Drawing.Size(40, 60);
             Bitmap imageVide = new Bitmap(imagesMusiciens.ImageSize.Width, imagesMusiciens.ImageSize.Height);
             using (Graphics graph = Graphics.FromImage(imageVide))
             {
                 Rectangle ImageSize = new Rectangle(0, 0, imagesMusiciens.ImageSize.Width, imagesMusiciens.ImageSize.Height);
-                graph.FillRectangle(Brushes.White, ImageSize);
+                graph.FillRectangle(Brushes.LightGreen, ImageSize);
             }
+            imagesMusiciens.ImageSize = new Size(20, 30);
             imagesMusiciens.Images.Add(imageVide);
-
-            imagesMusiciens = new ImageList();
-            imagesMusiciens.ImageSize = new Size(40, 60);
-            imagesMusiciens.Images.Add(imageVide);
+            int x = 0;
+            foreach(Image im in imageList1.Images)
+            {
+                imagesMusiciens.Images.Add("a"+(x++).ToString(), im); 
+            }
             #endregion
-
-            Confirmé = md.Disques.Where(d => d.Source == "Achat confirmé").Count();
-            nbBD = md.Disques.Where(d => d.Source == "Achat confirmé" & d.Format == "BD").Count();
-            nombreOpéras.Text = md.Disques.Count().ToString() + " opéras (" + nbBD + " BDs)";
-            achetés.Text = Confirmé.ToString() + " achats";
-            arbreFichiers.Nodes.Clear();
             arbreFichiers.ImageList = imagesMusiciens;
+            arbreFichiers.TreeViewNodeSorter = new NodeSorter();
             #region Traitement événement des arbres
             arbreMusiciens.AfterSelect += Arbre_AfterSelect;
             arbreDirection.AfterSelect += Arbre_AfterSelect;
             arbreMise.AfterSelect += Arbre_AfterSelect;
             arbreRoles.AfterSelect += Arbre_AfterSelect;
-            arbreFichiers.MouseClick += Arbre_MouseClick;
+            arbreFichiers.MouseClick += ArbreFichiers_MouseClick; ;/*Fichiers*/
             arbreMusiciens.MouseClick += Arbre_MouseClick;
             arbreDirection.MouseClick += Arbre_MouseClick;
             arbreMise.MouseClick += Arbre_MouseClick;
             arbreRoles.MouseClick += Arbre_MouseClick;
             arbreOpéras.MouseClick += Arbre_MouseClick;
-            tabControl.TabPages.RemoveAt(tabControl.TabPages.Count - 1);
             player = new Player();
             #endregion
-
+            KeyPreview = true;
+            //Init();
             //https://stackoverflow.com/questions/7955663/how-to-build-splash-screen-in-windows-forms-application
-          }
+            Cursor = Cursors.Default;
+        }
+        #region Chargement
         private void MainForm_Load(object sender, EventArgs e)
+        //     private void Init()
         {
-            CréeArbreFichiers();
+       
             spl = new SplashScreen();
-            worker = new BackgroundWorker();
-            worker.WorkerSupportsCancellation = true;
-            worker.WorkerReportsProgress = true;
+            worker = new BackgroundWorker
+            {
+                WorkerSupportsCancellation = true,
+                WorkerReportsProgress = true
+            };
             worker.DoWork += Worker_DoWork;
             worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
             worker.ProgressChanged += Worker_ProgressChanged;
             worker.RunWorkerAsync();
             spl.ShowDialog();
+            int nbDVD = md.Disques.Where(d => d.Source == "Achat confirmé" & d.Format == "DVD").Count();
+            int nbBD = md.Disques.Where(d => d.Source == "Achat confirmé" & d.Format == "BD").Count();
+            int nombreOp = md.Disques.Select(c => c.Opéra.Code_Opéra).Distinct().Count();
+            int nbEnr= md.Disques.Where(c => c.URL!=null).Distinct().Count();
+            int nbAuteurs = md.Disques.Select(c => c.Opéra.Code_Musicien).Distinct().Count();
+            nombreOpéras.Text = nombreOp.ToString() + " opéras de " + nbAuteurs.ToString() + " compositeurs "
+                + nbEnr.ToString() + " enregistrements (dont" + nbDVD + " DVDs et " + nbBD + " BDs soit";
+            achetés.Text = (nbDVD+nbBD).ToString() + " achats)";
         }
-        BackgroundWorker worker;
         private void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             spl.ProgressBar.Value = e.ProgressPercentage;
@@ -100,18 +113,131 @@ namespace ListeOpéras
         {
             CréeArbreFichiers();
         }
+        #endregion
+        public void VTTtoSRT(string filename)
+        {
+            StreamReader sr = new StreamReader(filename);
+            string newFile = filename.Replace("Verdi - ", "").Replace("concert ", "");
+            newFile = newFile.Replace("Verdi - ", "").Replace(" (complet - ST it-eng-fr-de-esp)_(sous-titres_vtt)_fr", "").Replace("Nouveau", @"Nouveau\Avec virgule").Replace("vtt", "srt");
+            string line;
+            // on saute l'en-tête
+            for (int i = 0; i < 3; i++)
+                sr.ReadLine();
+            int index = 1;
+            StreamWriter sw = new StreamWriter(newFile, true, Encoding.GetEncoding(1252));
+            while (!sr.EndOfStream)
+            {
+                line = sr.ReadLine();
+                if (line.StartsWith("0"))
+                {
+                    sw.WriteLine(index++);
+                    line = line.Replace(".", ",");
+                }
+                sw.WriteLine(line);
+            }
+            sr.Close();
+            sw.Close();
+        }
+        #region Réponse aux événements
+        private void TraductionSousTitre_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog opfd = new OpenFileDialog
+            {
+                Filter = "Sous-titres(*.vtt) |*.vtt|All files (*.*)|*.*"
+            };
+            if (opfd.ShowDialog()== DialogResult.OK)
+            {
+                VTTtoSRT(opfd.FileName);
+            }
+        }
+        /// <summary>
+        /// Recherche d'un opéra
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Titre_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (titre.SelectedIndex == 0) return;
+            tabControl.SelectedTab = tabOpéras;
+            Opéra op = (Opéra)titre.SelectedItem;
+            Musicien mus = op.Musicien;
+            foreach(TreeNode tn in arbreOpéras.Nodes)
+            {
+                if(tn.Tag==mus)
+                {
+                    foreach(TreeNode ttn in tn.Nodes)
+                    {
+                        if(ttn.Tag==op)
+                        { 
+                            ttn.ExpandAll();
+                            ttn.EnsureVisible();
+                            arbreOpéras.SelectedNode = ttn;
+                        }
+                    }
+                }
+            }
+           
+        }
+        /// <summary>
+        /// Recherche d'un chanteur
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Chanteurs_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (chanteurs.SelectedIndex == 0) return;
+            Cursor = Cursors.WaitCursor;
+            Musicien musicien = (Musicien)chanteurs.SelectedItem;
+            if (tabControl.SelectedTab != tabMusiciens)
+                tabControl.SelectedTab = tabMusiciens;
+            foreach (TreeNode tn in arbreMusiciens.Nodes)
+            {
+                if (tn.Text == musicien.Instrument.Nom_Instrument)
+                {
+                    arbreMusiciens.SelectedNode = tn;
+                    if (tn.Nodes.Count == 0)
+                    {
+                        var musi = md.Musicien.Where(m => m.Instrument.Code_Instrument == musicien.Instrument.Code_Instrument & m.Interprétation.Count > 0).OrderBy(m => m.Instrument.Nom_Instrument).ThenBy(m => m.Nom_Musicien).ThenBy(m => m.Prénom_Musicien);
+                        foreach (Musicien mus in musi)
+                        {
+                            arbreMusiciens.SelectedNode.Nodes.Add(mus.CréeNoeudMusicien());
+                        }
+                    }
+                    foreach (TreeNode ttn in tn.Nodes)
+                    {
+                        if (ttn.Tag== musicien)
+                        {
+                            ttn.ExpandAll();
+                            ttn.EnsureVisible();
+                            arbreMusiciens.SelectedNode = ttn;
+                            musicien.ActivitésMusicien(ttn);
+                            Cursor = Cursors.Default;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
         private void Refresh_Click(object sender, EventArgs e)
         {
             CréeArbreFichiers();
         }
-        #region Réponse aux événements
+        /// <summary>
+        /// Création d'un nouveau disque sans enregistrement associé
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Nouveau_Click(object sender, EventArgs e)
         {
-            Disques d = new Disques();
-            MiseAJourObjet mf = new MiseAJourObjet(d, md);
-            mf.Show();
+            Disques disque = new Disques();
+            disque.Metajour();
+            //MiseAJourObjet mf = new MiseAJourObjet(d, md);
+            //mf.Show();
         }
-        #endregion
+        private void Hide_Click(object sender, EventArgs e)
+        {
+            splitFichiers.Panel1Collapsed = hide.Checked;
+        }
         private void TabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (!player.Playing) splitContainer1.Panel2Collapsed = true;
@@ -130,13 +256,14 @@ namespace ListeOpéras
                 if (arbreMusiciens.Nodes.Count > 0) return;
                 #region CréeArbreMusiciens
                 arbreMusiciens.ImageList = imagesMusiciens;
-                arbreMusiciens.Nodes.Clear();
                 var instruments = md.Instrument.Where(i => i.Type == "Voix")
                     .OrderBy(i => i.Nom_Instrument);
                 foreach (Instrument ins in instruments)
                 {
-                    TreeNode tn = new TreeNode(ins.Nom_Instrument);
-                    tn.Tag = ins;
+                    TreeNode tn = new TreeNode(ins.Nom_Instrument)
+                    {
+                        Tag = ins
+                    };
                     arbreMusiciens.Nodes.Add(tn);
                 }
                 #endregion
@@ -146,10 +273,9 @@ namespace ListeOpéras
                 if (arbreDirection.Nodes.Count > 0) return;
                 #region Arbre Direction
                 arbreDirection.ImageList = imagesMusiciens;
-                arbreDirection.Nodes.Clear();
                 foreach (Musicien mus in md.Musicien.Where(m => m.Diriger.Count > 0).OrderBy(m => m.Nom_Musicien))
                 {
-                    arbreDirection.Nodes.Add(CréeNoeudMusicien(mus, arbreDirection));
+                    arbreDirection.Nodes.Add(mus.CréeNoeudMusicien());
                 }
                 #endregion
             }
@@ -162,8 +288,10 @@ namespace ListeOpéras
                 var opéras = md.Opéra.Where(o => o.Disques.Count > 0);
                 foreach (Opéra op in opéras)
                 {
-                    TreeNode tn = new TreeNode(op.Titre + " " + op.Musicien.Nom_Musicien);
-                    tn.Tag = op;
+                    TreeNode tn = new TreeNode(op.Titre + " " + op.Musicien.Nom_Musicien)
+                    {
+                        Tag = op
+                    };
                     arbreRoles.Nodes.Add(tn);
                 }
                 #endregion
@@ -174,78 +302,85 @@ namespace ListeOpéras
                 #region Mise en Scène
                 arbreMise.ImageList = imagesMusiciens;
                 arbreMise.Nodes.Clear();
-                foreach (Musicien mus in md.Musicien.Where(m => m.MiseEnScene.Count > 0))
+                foreach (Musicien mus in md.Musicien.Where(m => m.MiseEnScene.Count > 0).OrderBy(m => m.Nom_Musicien))
                 {
-                    arbreMise.Nodes.Add(CréeNoeudMusicien(mus, arbreMise));
+                    arbreMise.Nodes.Add(mus.CréeNoeudMusicien());
                 }
                 #endregion
             }
         }
+        #endregion
         #region Arborescence fichiers
         private void CréeArbreFichiers()
         {
             arbreFichiers.Nodes.Clear();
             #region Parcours de l'arborescence
             SuspendLayout();
-            Musicien mus = new Musicien();
-            nbOpéras = 0;
+            Musicien musicien = new Musicien();
+            int nbOpéras = 0;
             int count = 0;
             int total = Directory.GetDirectories(BasePath).Count();
             foreach (string répertoire in Directory.GetDirectories(BasePath).OrderBy(x => x))
             {
-                string nom = Path.GetFileNameWithoutExtension(répertoire);
-                if ((mus != null) && (mus.Nom_Musicien != répertoire))
+                string nom = Path.GetFileNameWithoutExtension(répertoire).Replace(BOM, "");
+                string prénom = "";
+                if (nom.Contains(", "))
                 {
-                    var x = md.Musicien.Where(m => m.Instrument.Nom_Instrument == "Composition" & m.Nom_Musicien.ToUpper() == nom.ToUpper());
-                    if (x.Count() == 1)
-                    {
-                        // Le nom correspond au  nom du répertoire et il n'y a pas d'homonyme
-                        mus = x.First();
-                    }
-                    else if (x.Count() != 1)
-                    {
-                        #region Plusieurs compositeurs portent le même nom de famille. 
-                        foreach (string f in Directory.GetFiles(répertoire))
-                        {
-                            // On cherche un fichier répertoiré dans le répertoire et on obtient le nom du répertoire
-                            string fichier = Path.GetFileName(f);
-                            var disques = md.Disques.Where(d => d.Fichier == fichier);
-                            if (disques.Count() > 0)
-                            {
-                                if (mus != disques.First().Opéra.Musicien)
-                                {
-                                    mus = disques.First().Opéra.Musicien;
-                                }
-                                break;
-                            }
-                        }
-                        #endregion
-                    }
-                    else
-                    {
-                        // On ne peut pas associer un nom de musicien au répertoire
-                        mus = new Musicien { Nom_Musicien = nom };
-                    }
-                    string[] fichiers = Directory.GetFiles(répertoire).Where(f => !f.EndsWith(".srt") | !f.EndsWith(".sfk") | !f.EndsWith(".sfk") | !f.EndsWith(".srtold") | !f.EndsWith(".txt") | !f.EndsWith(".smi")).ToArray();
-                    nbOpéras += fichiers.Count();
+                    prénom = nom.Split(' ')[1]; nom = nom.Split(' ')[0].Replace(",", "");
                 }
-                if (nom == "Haendel")
-                { }
-                TreeNode noeudMusicien = CréeNoeudMusicien(mus, arbreFichiers);
-                noeudMusicien.Name = nom;
-                noeudMusicien.Tag = mus;
-                //       arbreFichiers.Nodes.Add(noeudMusicien);
+                var compositeurs = md.Musicien.Where(m => m.Instrument.Nom_Instrument == "Composition" & m.Nom_Musicien.ToUpper() == nom.ToUpper());
+                if (compositeurs.Count() == 1)
+                {
+                    // Le nom correspond au  nom du répertoire et il n'y a pas d'homonyme
+                    musicien = compositeurs.First();
+                }
+                else if (compositeurs.Count() >= 1)
+                {
+                    #region Plusieurs compositeurs portent le même nom de famille. 
+
+                    compositeurs = compositeurs.Where(c => c.Prénom_Musicien.StartsWith(prénom));
+                    foreach (string f in Directory.GetFiles(répertoire))
+                    {
+                        // On cherche un fichier répertorié dans le répertoire et on obtient le nom du répertoire
+                        string fichier = Path.GetFileName(f);
+                        var disques = md.Disques.Where(d => d.Fichier == fichier);
+                        if (disques.Count() > 0)
+                        {
+                            if (musicien != disques.First().Opéra.Musicien)
+                            {
+                                musicien = disques.First().Opéra.Musicien;
+                            }
+                            break;
+                        }
+                    }
+                    #endregion
+                }
+                else
+                {
+                    // On ne peut pas associer un nom de compositeur au répertoire
+                    musicien = new Musicien { Nom_Musicien = nom };
+                }
+                string[] fichiers = Directory.GetFiles(répertoire).Where(f => !f.EndsWith(".srt") | !f.EndsWith(".sub") | !f.EndsWith(".sfk") | !f.EndsWith(".sfk") | !f.EndsWith(".srtold") | !f.EndsWith(".txt") | !f.EndsWith(".smi")).ToArray();
+                nbOpéras += fichiers.Count();
+
+                TreeNode noeudMusicien = musicien.CréeNoeudMusicien();
+                noeudMusicien.Name = Path.GetFileNameWithoutExtension(répertoire);
+                noeudMusicien.Tag = musicien;
                 AddNode(arbreFichiers, noeudMusicien);
                 count++;
                 int percentComplete = (int)((float)count / (float)total * 100);
                 if (worker != null) worker.ReportProgress(percentComplete);
             }
-            nbCompositeurs = arbreFichiers.Nodes.Count;
-            nombreOpéras.Text = nbOpéras.ToString() + " oeuvres";
+            int nbCompositeurs = arbreFichiers.Nodes.Count; titre.Items.Add("<Choisir l'Opéra>");
+            md.Opéra.Where(op => op.Disques.Count > 0).OrderBy(c => c.Musicien.Nom_Musicien).ToList().ForEach(c => titre.Items.Add(c));
+            chanteurs.Items.Add("<Choisir le Chanteur>");
+            md.Musicien.Where(m => m.Instrument.Type == "Voix" & m.Interprétation.Count > 0).OrderBy(c => c.Nom_Musicien).ToList().ForEach(C => chanteurs.Items.Add(C));
+            titre.SelectedIndex = 0;
+            chanteurs.SelectedIndex = 0;
+            //         nombreOpéras.Text += nbCompositeurs.ToString() + " compositeurs et " + nbOpéras.ToString() + " oeuvres numériques";
             ResumeLayout();
             #endregion
         }
-        bool seulInconnus = false;
         public delegate void SetItemCallBack(TreeView ct, TreeNode txt);
         public void AddNode(TreeView arbre, TreeNode node)
         {
@@ -260,12 +395,13 @@ namespace ListeOpéras
                 Musicien mus = (Musicien)node.Tag;
                 if (mus.Photo != null)
                 {
-                    Image im = Image.FromStream(new MemoryStream(mus.Photo));
-                    if (!arbre.ImageList.Images.ContainsKey(mus.Code_Musicien.ToString()))
-                        arbre.ImageList.Images.Add(mus.Code_Musicien.ToString(), im);
-                    node.ImageKey = mus.Code_Musicien.ToString();
-                    node.SelectedImageKey = node.ImageKey;
-                    im.Dispose();
+                     mus.MetàJourImageMusicien( node);
+                    //Image im = Image.FromStream(new MemoryStream(mus.Photo));
+                    //if (!arbre.ImageList.Images.ContainsKey(mus.Code_Musicien.ToString()))
+                    //    arbre.ImageList.Images.Add(mus.Code_Musicien.ToString(), im);
+                    //node.ImageKey = mus.Code_Musicien.ToString();
+                    //node.SelectedImageKey = node.ImageKey;
+                    //im.Dispose();
                 }
                 else
                 {
@@ -277,350 +413,329 @@ namespace ListeOpéras
         private void CréeListeOpéras(TreeNode tn)
         {
             Musicien mus = (Musicien)tn.Tag;
-            string path = BasePath + @"\" + tn.Name;
-            if (Directory.Exists(path))// vrai seulement pour les compositeurs
+            mus.Nom_Musicien = mus.Nom_Musicien.Replace(BOM, "");
+            md.SaveChanges();
+            int opera = imagesMusiciens.Images.IndexOfKey("a9");
+            List<string> subtitle = new List<string>() { ".srt", ".sfk", ".sub", ".srtold", ".txt", ".smi" };
+            if (Directory.Exists((BasePath + @"\" + mus.Nom_Musicien)))// vrai seulement pour les compositeurs
             {
-                #region Crée la liste
-                foreach (string f in Directory.GetFiles(path))
+
+              #region Crée la liste
+                var files = Directory.GetFiles((BasePath + @"\" + mus.Nom_Musicien)).Where(c => !subtitle.Contains(Path.GetExtension(c)));
+                int n = files.Count();
+                tn.Text = mus.ToString() + " : " + n.ToString() + " enregistrement";
+                if (n > 1) tn.Text += "s";
+                foreach (string fileName in files)
                 {
                     #region Lecture d'un répertoire
-                    if (f.EndsWith(".srt") | f.EndsWith(".sfk") | f.EndsWith(".sfk") | f.EndsWith(".srtold") | f.EndsWith(".txt") | f.EndsWith(".smi"))
+                    string ext = Path.GetExtension(fileName);
+                    if (subtitle.Contains(ext))
                         continue;
-                    string fichier = Path.GetFileName(f);
-
+                    string fichier = Path.GetFileName(fileName);
                     bool subt = false;
-                    if (f.EndsWith("mp4"))
+                    if (fileName.EndsWith("mp4"))
                     {
-                        string sub = f.Replace("mp4", "srt");
+                        string sub = fileName.Replace("mp4", "srt");
                         if (File.Exists(sub))
                         {
                             subt = true;
                         }
                     }
-                    var op = md.Disques.Where(d => d.Fichier == fichier);
-                    if(op.Count()==0)
+                    var op = md.Disques.Where(d => d.URL == fileName);
+                    TreeNode ttn = new TreeNode(fichier, opera, opera);
+                    if (op.Count() == 0)
                     {
-                        TreeNode ttn = new TreeNode(f);
+                        // Fichier non affecté
                         ttn.NodeFont = new Font(arbreOpéras.Font, FontStyle.Bold);
                         ttn.ForeColor = Color.Red;
                         tn.Nodes.Add(ttn);
                     }
-                    else { 
-                    TreeNode ttn = new TreeNode(f);
-                    if (subt)
-                        ttn.NodeFont = new Font(arbreOpéras.Font, FontStyle.Bold);
-                        if (seulInconnus)
+                    else
+                    {
+                        if (subt)
+                            ttn.NodeFont = new Font(arbreOpéras.Font, FontStyle.Bold);
+                        if (op.Count() > 0)
                         {
-                            if (op.Count() == 0)
+                            Disques dis = (Disques)op.First();
+                            ttn.Tag = dis;
+                        //    dis.FullPath = fileName;
+                            dis.URL = fileName;
+
+                            if (String.IsNullOrEmpty(dis.Format))
+                                dis.Format = Path.GetExtension(fileName).Replace(".", "");
+                            if (fileName.Contains("1280"))
+                                dis.Définition =new Définition { Détail = "HD" };
+                            if (mus != dis.Opéra.Musicien)
                             {
-                                ttn.Tag = new Disques { Fichier = fichier, FullPath = f };
-                                tn.Nodes.Add(ttn);
+                                mus = dis.Opéra.Musicien;
+                                //       tn.Text = f;//mus.Nom_Musicien + " " + mus.Prénom_Musicien;
+                                tn.Tag = mus;
                             }
+                            string ff = Path.GetFileName(fileName);
+                            if (dis.Pochette != null)
+                            {
+                                // dis.MetajourPochette(tn.TreeView);
+
+                                string key = "Dis" + dis.Code_Disque.ToString();
+                                if (!imagesMusiciens.Images.ContainsKey(key))
+                                {
+                                    Image im = Image.FromStream(new MemoryStream(dis.Pochette));
+                                    imagesMusiciens.Images.Add(key, im);
+                                }
+                                ttn.ImageKey = key;
+                                ttn.SelectedImageKey = key;
+
+                            }
+                            dis.Fichier = ff;
                         }
                         else
                         {
-                            if (op.Count() > 0)
+                            ttn.Tag = new Disques { Fichier = fichier, URL = fileName };
+                        }
+                        if (String.IsNullOrEmpty(tn.ImageKey))
+                        {
+                            if (mus.Photo != null)
                             {
-                                Disques dis = (Disques)op.First();
-                                ttn.Tag = dis;
-                                dis.FullPath = f;
-                                if (mus != dis.Opéra.Musicien)
-                                {
-                                    mus = dis.Opéra.Musicien;
-                                    //       tn.Text = f;//mus.Nom_Musicien + " " + mus.Prénom_Musicien;
-                                    tn.Tag = mus;
-                                }
-                                string ff = Path.GetFileName(f);
-                                if (dis.Pochette != null)
-                                {
-                                    string key = "Dis" + dis.Code_Disque.ToString();
-                                    if (!arbreFichiers.ImageList.Images.ContainsKey(key))
-                                    {
-
-                                        Image im = Image.FromStream(new MemoryStream(dis.Pochette));
-                                        imagesMusiciens.Images.Add(key, im);
-                                    }
-                                    ttn.ImageKey = key;
-                                    ttn.SelectedImageKey = ttn.ImageKey;
-
-                                }
-                                dis.Fichier = ff;
+                                mus.MetàJourImageMusicien(arbreFichiers.SelectedNode);
+           //                     MetàJourImageMusicien(arbreFichiers, mus);
+                                //Image im = Image.FromStream(new MemoryStream(mus.Photo));
+                                ////if (!arbre.ImageList.Images.ContainsKey(mus.Code_Musicien.ToString()))
+                                ////    arbre.ImageList.Images.Add(mus.Code_Musicien.ToString(), im);
+                                //imagesMusiciens.Images.Add(im);
+                                //tn.ImageKey = mus.Code_Musicien.ToString();
+                                //tn.SelectedImageKey = tn.ImageKey;
+                                //im.Dispose();
                             }
                             else
                             {
-                                ttn.Tag = new Disques { Fichier = fichier, FullPath = f };
+                                tn.ImageIndex = opera;
                             }
-                            if (String.IsNullOrEmpty(tn.ImageKey))
-                            {
-                                if (mus.Photo != null)
-                                {
-                                    Image im = Image.FromStream(new MemoryStream(mus.Photo));
-                                    arbreFichiers.ImageList.Images.Add(im);
-                                    tn.ImageKey = mus.Code_Musicien.ToString();
-                                    tn.SelectedImageKey = tn.ImageKey;
-                                    im.Dispose();
-                                }
-                                else
-                                {
-                                    tn.ImageIndex = 0;
-                                }
-                            }
-                            //if (refreshButton.Checked)
-                            //{
-                            //    if (((Disques)ttn.Tag).Code_Disque == 0)
-                            //        tn.Nodes.Add(ttn);
-                            //    tn.Text += " " + tn.Nodes.Count.ToString();
-                            //}
-                            //else
-                            tn.Nodes.Add(ttn);
                         }
+                        tn.Nodes.Add(ttn);
                     }
                     #endregion
                 }
-                tn.Expand();
+            //    tn.Expand();
                 #endregion
+            }
+            else
+            {
+                if (mus.Diriger.Count>0)
+                {
+                    List<Diriger> directions = mus.Diriger.ToList();
+                    foreach(Diriger direction in directions)
+                    {
+                        TreeNode trn = new TreeNode(direction.Disques.Fichier)
+                        {
+                            Tag = direction.Disques
+                        };
+                        tn.Nodes.Add(trn);
+                    }
+                }
+    //            
             }
             arbreFichiers.ExpandAll();
         }
+        #endregion      
         #region Sélection d'un noeud
         private void ArbreFichiers_AfterSelect(object sender, TreeViewEventArgs e)
         {
             TreeView arbre = (TreeView)sender;
+            if (arbre.SelectedNode == null) return;
             var u = md.Disques.Where(c => c.Durée == 0);
-            if (arbre.SelectedNode != null)
-            {
-                var x = arbre.SelectedNode.Tag;
-                arbre.SelectedNode.Nodes.Clear();
-                if (x == null) // Fichier sans disque enregistré 
-                {
-                    Disques op = new Disques { Fichier = arbre.SelectedNode.Text }; 
-                    MiseAJourObjet mf = new MiseAJourObjet(op, md);
-                    if(mf.ShowDialog()== DialogResult.OK)
-                    {
-                        md.Disques.Add(op);
-                        md.SaveChanges();
-                    }
-                }
-                if (x is Musicien)
-                {
-                    Musicien mus = (Musicien)x;
-                    arbre.SelectedNode.Nodes.Clear();
-                    CréeListeOpéras(arbre.SelectedNode);
-                }
-                else if (x is Disques dis)
-                {
-                    if (dis.Opéra != null)
-                    {
-                        arbre.SelectedNode.Nodes.Clear();
-                        CréeNoeudDisque(dis, arbre);
-                    }
-                    Visionner(((SplitContainer)arbreFichiers.Parent.Parent.Parent.Parent).Panel2, dis);
-                    Text = "Opéras : " + Path.GetFileName(dis.Fichier);
-                }
-                else if (x is Diriger direct)
-                {
-                }
-                else if (x is LienYouTube)
-                {
-
-                }
-                else if (x is Opéra opera)
-                {
-
-                }
-                else if (x is Interprétation interp)
-                {
-
-                }
-            }
-        }
-        private void ArbreOpéras_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            var x = arbreOpéras.SelectedNode.Tag;
-
-            if (x != null)
-            {
-                if (x is Opéra op)
-                {
-                    //Opéra op = (Opéra)arbreOpéras.SelectedNode.Tag;
-                    #region Noeud Opéra
-                    arbreOpéras.SelectedNode.Nodes.Clear();
-                    if (!string.IsNullOrEmpty(op.Argument))
-                    {
-                        TreeNode t = new TreeNode(op.Argument);
-                        arbreOpéras.SelectedNode.Nodes.Add(t);
-                    }
-                    List<Disques> disk = md.Disques.Where(d => d.Opéra.Code_Opéra == op.Code_Opéra).OrderBy(d => d.Année).ToList();
-                    foreach (Disques dis in disk)
-                    {
-                        TreeNode trn = CréeNoeudDisque(dis, arbreOpéras);
-                        trn.Tag = dis;
-                    }
-                    #endregion
-                }
-                else if (x is Disques dis)
-                {
-                    #region Noeud Disque
-                    //       Disques dis = (Disques)arbreOpéras.SelectedNode.Tag;
-                    //                  CréeNoeudDisque(dis, arbreOpéras);
-
-                    if (dis.Source == "Téléchargement")
-                    {
-                        //          dis.PlayVideo(MediaPlayer, ((SplitContainer)arbreOpéras.Parent.Parent).Panel2);
-                        Visionner(splitFichiers.Panel2, dis);
-                        Text = "Opéras : " + Path.GetFileName(dis.Fichier);
-                    }
-                    #endregion
-                }
-                arbreOpéras.SelectedNode.Expand();
-            }
-        }
-        private void Arbre_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            TreeView arbre = (TreeView)sender;
             var x = arbre.SelectedNode.Tag;
             arbre.SelectedNode.Nodes.Clear();
-            if (x is Instrument instrum)
+            switch (x)
             {
-                #region Musiciens associés à un type d'instrument
-                var musi = md.Musicien.Where(m => m.Instrument.Code_Instrument == instrum.Code_Instrument & m.Interprétation.Count > 0).OrderBy(m => m.Instrument.Nom_Instrument).ThenBy(m => m.Nom_Musicien).ThenBy(m => m.Prénom_Musicien);
-                foreach (Musicien m in musi)
-                {
-                    arbre.SelectedNode.Nodes.Add(CréeNoeudMusicien(m, arbre));
-                }
-                #endregion
-            }
-            if (x is Musicien)
-            {
-                NoeudMusicien(arbre);
-            }
-            if (x is Roles role)
-            {
-                foreach (Interprétation interp in role.Interprétation)
-                {
-                    TreeNode tn = CréeNoeudMusicien(interp.Musicien, arbre);
-                    tn.Tag = interp;
-                    arbre.SelectedNode.Nodes.Add(tn);
-                }
-            }
-            if (x is Disques disque)
-            {
-                if (!string.IsNullOrEmpty(disque.Fichier))
-                {
-                    string path = BasePath + @"\" + disque.Opéra.Musicien.Nom_Musicien.Replace(BOM, "") + @"\" + disque.Fichier.Replace(BOM, "");
-                    disque.FullPath = path;
-                    Visionner(splitFichiers.Panel2, disque);
-                    //   disque.PlayVideo(MediaPlayer, ((SplitContainer)arbre.Parent.Parent).Panel2);
-                    Text = "Opéras : " + Path.GetFileName(disque.Fichier);
-                }
-            }
-            if (x is Opéra opera)
-            {
-                foreach (Roles r in opera.Roles)
-                {
-                    TreeNode tr = new TreeNode(r.Role + " (" + r.Voix + ")");
-                    tr.Tag = r;
-                    arbre.SelectedNode.Nodes.Add(tr);
-                    foreach (Interprétation u in r.Interprétation)
+                case null: // Fichier sans disque associé enregistré
+                    string path = BasePath + @"\" + ((Musicien)arbre.SelectedNode.Parent.Tag).Nom_Musicien + @"\";
+                    player.Play(path + arbre.SelectedNode.Text);
+                    int Durée = (int)(player.Media.Duration.TotalMinutes);
+                    string Format = Path.GetExtension(arbre.SelectedNode.Text).Replace(".", "").ToUpper();
+                    Disques nouveauDisque = new Disques { URL = path + arbre.SelectedNode.Text, Audio = "Stéréo", Fichier = Path.GetFileName(arbre.SelectedNode.Text), Format = Format, Durée = Durée, Source = "Téléchargement" };
+                    nouveauDisque.GetDétails(player);
+                    player.Stop();
+                    if (nouveauDisque.Metajour())
                     {
-                        CréeNoeudMusicien(u.Musicien, arbre);
+                        arbre.SelectedNode.Tag = nouveauDisque;
+                        arbre.SelectedNode.ForeColor = Color.Black;
+                        if (nouveauDisque.Code_Disque == 0)
+                            md.SaveChanges();
                     }
-                }
+                    Visionner(panel, nouveauDisque);
+                    break;
+                case Musicien musicien:
+                    CréeListeOpéras(arbre.SelectedNode);
+                    break;
+                case Disques disque:
+                    if (disque.Opéra != null)
+                    {
+                        if (arbre.SelectedNode.Parent.Tag == disque)
+                        {
+                            // Rien de spécial
+                        }
+                        else
+                        {
+                            disque.CréeNoeudDisque(arbre.SelectedNode);
+                            //      disque.FullPath = BasePath + @"\" + (string)arbre.SelectedNode.Parent.Name + @"\" + disque.Fichier;
+                            Visionner(panel, disque);
+                            Text = "Opéras : " + Path.GetFileName(disque.Fichier);
+                        }
+                    }
+                    break;
+                case Marqueurs marqueur:
+                    if (player != null)
+                        if (marqueur.Adresse != null)
+                            player.Position.FromBegin = new TimeSpan((long)marqueur.Adresse);
+                    break;
+                case BaseClass baseClass:
+                    {
+                        if (baseClass.Metajour())
+                        {
+                            switch (x)
+                            {
+                                case Interprétation interprétation:
+                                    if (interprétation.Musicien.Photo != null)
+                                        interprétation.Musicien.MetàJourImageMusicien(arbre.SelectedNode);
+                                    break;
+                                case Diriger direction:
+
+                                    if (direction.Musicien.Photo != null)
+                                        direction.Musicien.MetàJourImageMusicien(arbre.SelectedNode);
+                                    break;
+                                case MiseEnScene miseenscène:
+                                    if (miseenscène.Musicien.Photo != null)
+                                        miseenscène.Musicien. MetàJourImageMusicien(arbre.SelectedNode);
+                                    break;
+                            }
+                        }
+                    }
+                    break;
+                case LienYouTube lien:
+                    lien.Play();
+                    break;
+                case ASIN asin:
+                    string url = "https://www.amazon.fr/dp/" + asin;
+                    Process.Start(chrome, url);
+                    break;
             }
-            if (x is Interprétation interpretation)
-            {
-                TreeNode tn = new TreeNode(interpretation.Disques.Editeur.Editeur1 + " " + interpretation.Disques.Année.ToString());
-                if (!String.IsNullOrEmpty(interpretation.Disques.Fichier))
-                {
-                    interpretation.Disques.FullPath = BasePath + interpretation.Disques.Opéra.Musicien.Nom_Musicien + @"\" + interpretation.Disques.Fichier;
-                    tn.Text += interpretation.Disques.Fichier;
-                }
-                tn.Tag = interpretation.Disques;
-                arbre.SelectedNode.Nodes.Add(tn);
-            }
-            arbre.SelectedNode.ExpandAll();
         }
-        private void NoeudMusicien(TreeView arbre)
+        private void ArbreFichiers_MouseClick(object sender, MouseEventArgs e)
         {
-            #region Activités pour un musicien donné
-            arbre.SelectedNode.Nodes.Clear();
-            Musicien mus = (Musicien)arbre.SelectedNode.Tag;
-            var inter = mus.Interprétation.OrderBy(m => m.Roles.Role);
-            Roles role = null;
-            TreeNode tn = null;
-            foreach (Opéra op in mus.Opéra.Where(o => o.Disques.Count > 0).OrderBy(o => o.Année))
+            if (arbreFichiers.SelectedNode != null)
             {
-                #region Compositions
-                TreeNode to = new TreeNode("Composition : " + op.Titre);
-                to.Tag = op;
-                arbre.SelectedNode.Nodes.Add(to);
-                #endregion
-            }
-            foreach (Diriger dir in mus.Diriger.OrderBy(c => c.Disques.Opéra.Titre))
-            {
-                #region Chef
-                Disques dis = dir.Disques;
-                CréeNoeudDisque(dis, arbre);
-                #endregion
-            }
-            foreach (MiseEnScene mise in mus.MiseEnScene)
-            {
-                #region Metteur en Scène
-                Disques dis = mise.Disques;
-                CréeNoeudDisque(dis, arbre);
-                #endregion
-            }
-            foreach (Interprétation i in inter)
-            {
-                #region Interprète
-                if (role != i.Roles)
+                if (e.Button == MouseButtons.Right)
                 {
-                    role = i.Roles;
-                    tn = new TreeNode("Interprète : " + role.Role);
-                    tn.Tag = role;
-                    arbre.SelectedNode.Nodes.Add(tn);
+
+                    CréeMenu(arbreFichiers);
                 }
-                TreeNode n = new TreeNode(i.Disques.Fichier);
-                if ((i.Disques.Pochette != null) & (i.Disques.ASIN != null))
-                {
-                    MemoryStream ms = new MemoryStream(i.Disques.Pochette);
-                    Image im = Image.FromStream(ms);
-                    arbre.ImageList.Images.Add(i.Disques.ASIN.ToString(), im);
-                    n.ImageKey = i.Disques.ASIN.ToString();
-                    n.SelectedImageKey = n.ImageKey;
-                    im.Dispose();
-                }
-                if (String.IsNullOrEmpty(i.Disques.Fichier))
-                {
-                    n.Text = i.Disques.Opéra.Titre + " (" + i.Disques.Editeur.Editeur1 + ")";
-                }
-                tn.Nodes.Add(n);
-                n.Tag = i.Disques;
-                #endregion
+                else arbreFichiers.SelectedNode.Toggle();
             }
-            #endregion
         }
-        #endregion
-        private void Visionner(Panel panneau, Disques dis)
+        private void ArbreFichiers_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            string path = BasePath + @"\" + dis.Opéra.Musicien.Nom_Musicien + @"\" + dis.Fichier;
-            Init(path, panneau);
-            //dis.FullPath = path;
-            //panneau.Controls.Clear();
-            //foreach (Visionneuse visio in visionneuses)
-            //    visio.Dispose();
-            //visionneuses.Clear();
-            //Visionneuse vis = new Visionneuse();
-            //visionneuses.Add(vis);
-            //panneau.Controls.Add(vis);
-            //vis.Dock = DockStyle.Fill;
-            //vis.Init(path);
+            if (arbreFichiers.SelectedNode.Tag is Disques disque)
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = disque.URL
+                };
+                _ = Process.Start(startInfo);
+            }
         }
         #endregion
         #region Arborescence opéras
+        private void ArbreOpéras_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            if (arbreOpéras.SelectedNode == null) return;
+            var tag = arbreOpéras.SelectedNode.Tag;
+            if (tag is null) return;
+            if (tag is Musicien musicien)
+            {
+                if (musicien.Instrument.Nom_Instrument == "Composition")
+                {
+                    List<Disques> disque = md.Disques.Where(c => c.Opéra.Musicien.Code_Musicien == musicien.Code_Musicien).ToList();
+                    arbreOpéras.SelectedNode.Text += " : " + disque.Count.ToString() + " enregistrement";
+                    if (disque.Count > 1)
+                        arbreOpéras.SelectedNode.Text += "s";
+                }
+                //else musicien.CréeNoeudMusicien(arbreOpéras);
+            }
+            else if (tag is Opéra opera)
+            {
+                TreeNode tn0 = arbreOpéras.SelectedNode.Parent;
+                int nbOp = ((Musicien)arbreOpéras.SelectedNode.Parent.Tag).Opéra.Count;
+                if (arbreOpéras.SelectedNode.Nodes.Count >= nbOp)
+                {
+                    return;
+                }
+                else
+                    opera.CréeNoeudOpéra(arbreOpéras.SelectedNode);
+                //#region Noeud Opéra
+                ////arbreOpéras.SelectedNode.Nodes.Clear();
+                ////if (!string.IsNullOrEmpty(opera.Argument))
+                ////{
+                ////    TreeNode t = new TreeNode(opera.Argument);
+                ////    arbreOpéras.SelectedNode.Nodes.Add(t);
+                ////    t.Tag = "Argument";
+                ////}
+                ////List<Disques> disk = md.Disques.Where(d => d.Opéra.Code_Opéra == opera.Code_Opéra).OrderBy(d => d.Année).ToList();
+                ////arbreOpéras.SelectedNode.Text += " " + disk.Count.ToString() + " enregistrement";
+                ////if (disk.Count > 1)
+                ////    arbreOpéras.SelectedNode.Text += "s";
+                ////foreach (Disques dis in disk)
+                ////{
+                ////    TreeNode trn = CréeNoeudDisque(dis, arbreOpéras);
+                ////    trn.Tag = dis;
+                ////}
+                //#endregion
+            }
+            else if (tag is Disques disque)
+            {
+                #region Noeud Disque
+                if (disque.Fichier != null)
+                {
+                    Visionner(panel, disque);
+                    Text = "Opéras : " + Path.GetFileName(disque.Fichier);
+                }
+                arbreOpéras.SelectedNode.Expand();
+                #endregion
+            }
+            else if (tag is LienYouTube lien)
+            {
+                lien.Play();
+            }
+            else if (tag is ASIN asin)
+            {
+                //         if (asin.asin.Length == 10)
+                //{
+                string url = "https://www.amazon.fr/dp/" + asin;
+                Process.Start(chrome, url);
+            }
+            else if (tag is String argument)
+            {
+                if (argument == "Argument")
+                {
+                    Form arg = new Form
+                    {
+                        Text = arbreOpéras.SelectedNode.Parent.Tag.ToString()
+                    };
+                    RichTextBox Argument = new RichTextBox
+                    {
+                        Text = arbreOpéras.SelectedNode.Text
+                    };
+                    arg.Controls.Add(Argument);
+                    Argument.Visible = true;
+                    Argument.Dock = DockStyle.Fill;
+                    arg.Show();
+                }
+            } 
+            arbreOpéras.SelectedNode.Expand();
+        }
         private void CréeArbreOpéras()
         {
             arbreOpéras.Nodes.Clear();
+            int opera = imagesMusiciens.Images.IndexOfKey("a9");
             arbreOpéras.ImageList = imagesMusiciens;
             List<Opéra> opéras = md.Opéra.Where(o => o.Disques.Count > 0).OrderBy(o => o.Musicien.Nom_Musicien).ThenBy(o => o.Titre).ToList();
             Musicien musCourant = null;
@@ -630,341 +745,101 @@ namespace ListeOpéras
                 if (op.Musicien != musCourant)
                 {
                     musCourant = op.Musicien;
-                    noeudCourant = CréeNoeudMusicien(musCourant, arbreOpéras);
+                    noeudCourant = musCourant.CréeNoeudMusicien();
                     noeudCourant.Tag = musCourant;
+                    noeudCourant.Name = musCourant.Nom_Musicien + ", " + musCourant.Prénom_Musicien.Substring(0, 1);
                     arbreOpéras.Nodes.Add(noeudCourant);
                 }
-                TreeNode tn = new TreeNode(op.Titre);
-                tn.Tag = op;
+                TreeNode tn = new TreeNode(op.Titre, opera, opera)
+                {
+                    Tag = op
+                };
                 noeudCourant.Nodes.Add(tn);
             }
         }
         #endregion
-        public TreeNode CréeNoeudMusicien(Musicien mus, TreeView arbre)
+        #region Autres arbres
+        private void Arbre_AfterSelect(object sender, TreeViewEventArgs e)
         {
-            TreeNode n = new TreeNode(mus.Prénom_Musicien + " " + mus.Nom_Musicien);
-            n.Tag = mus;
-            if (mus.Photo != null)
+            TreeView arbre = (TreeView)sender;
+            arbre.SelectedNode.Nodes.Clear();
+            switch (arbre.SelectedNode.Tag)
             {
-                Image im = Image.FromStream(new MemoryStream(mus.Photo));
-                if (!arbre.ImageList.Images.ContainsKey(mus.Code_Musicien.ToString()))
-                    //{
-                    //    AddImage(imgsMusiciens, im, mus.Code_Musicien.ToString());
-                    //}
-                    arbre.ImageList.Images.Add(mus.Code_Musicien.ToString(), im);
-                n.ImageKey = mus.Code_Musicien.ToString();
-                n.SelectedImageKey = n.ImageKey;
-                im.Dispose();
-            }
-            else
-            {
-                n.ImageIndex = 0;
-                n.StateImageIndex = n.ImageIndex;
-            }
-            return n;
-        }
-        private TreeNode CréeNoeudDisque(Disques disque, TreeView arbre)
-        {
-            #region Noeud Disque
-            TreeNode noeudOpéra = new TreeNode(disque.Opéra.Titre + " (" + disque.Opéra.Année?.ToString() + ") "
-                + disque.Opéra.Musicien.Nom_Musicien + " " + disque.Opéra.Musicien.Prénom_Musicien);
-            if (!String.IsNullOrEmpty(disque.Fichier))
-                noeudOpéra.NodeFont = new Font(arbre.Font, FontStyle.Italic);
-            if (disque.Pochette != null & disque.ASIN != null)
-            {
-                string key = "Dis" + disque.Code_Disque.ToString();
-                if (!arbre.ImageList.Images.ContainsKey(key))
-                {
-                    Image im = Image.FromStream(new MemoryStream(disque.Pochette));
-                    imagesMusiciens.Images.Add(key, im);
-                }
-                noeudOpéra.ImageKey = key;
-                noeudOpéra.SelectedImageKey = noeudOpéra.ImageKey;
-            }
-            arbre.SelectedNode.Nodes.Add(noeudOpéra);
-            noeudOpéra.Tag = disque;
-            TreeNode source = new TreeNode(disque.Année?.ToString() + " " + disque.Source + " " + disque.Editeur?.Editeur1 + " :" + disque.Durée?.ToString() + " mn " + disque.Vidéo + ", " + disque.Audio);
-            if (disque.Détail_Définition != null)
-                source.Text += ", " + disque.Définition1.Détail;
-            noeudOpéra.Nodes.Add(source);
-            if (disque.LienYouTube.Count > 0)
-            {
-                TreeNode th = new TreeNode("YouTube");
-                noeudOpéra.Nodes.Add(th);
-                foreach (LienYouTube lien in disque.LienYouTube)
-                {
-                    TreeNode tLien = new TreeNode(lien.YouTube);
-                    tLien.Tag = lien;
-                    th.Nodes.Add(tLien);
-                }
-            }
-            if (disque.Diriger.Count == 0)
-            {
-                TreeNode dir = new TreeNode("Inconnu");
-                dir.Tag = new Diriger { Disques = disque };
-                noeudOpéra.Nodes.Add(dir);
-            }
-            else
-                foreach (Diriger dr in disque.Diriger)
-                {
-                    #region Orchestre et Direction
-                    TreeNode dir = new TreeNode(dr.Orchestres.Nom_Orchestre);
-                    dir.Tag = dr;
-                    if (dr.Musicien != null)
-                    {
-                        TreeNode tdir = CréeNoeudMusicien(dr.Musicien, arbre);
-                        dir.Nodes.Add(tdir);
-                        tdir.Tag = dr.Musicien;
-                    }
-                    noeudOpéra.Nodes.Add(dir);
+                case Instrument instrument:
+                    #region Musiciens associés à un type d'instrument
+                    
+                    var musi = md.Musicien.Where(m => m.Instrument.Code_Instrument == instrument.Code_Instrument & m.Interprétation.Count > 0).OrderBy(m => m.Instrument.Nom_Instrument).ThenBy(m => m.Nom_Musicien).ThenBy(m => m.Prénom_Musicien);
+                    foreach (Musicien m in musi)
+                        arbre.SelectedNode.Nodes.Add(m.CréeNoeudMusicien());
                     #endregion
-                }
-            if (disque.MiseEnScene.Count == 0)
-            {
-                TreeNode dir = new TreeNode("Metteur en scène inconnu");
-                MiseEnScene mise = new MiseEnScene();
-                dir.Tag = mise;
-                //         d.MiseEnScene.Add(new MiseEnScene { Musicien = mett });
-                noeudOpéra.Nodes.Add(dir);
-            }
-            else
-                foreach (MiseEnScene ms in disque.MiseEnScene)
-                {
-                    #region Mise en scène
-                    TreeNode mis = CréeNoeudMusicien(ms.Musicien, arbre);
-                    mis.Text = "Mise en scène : " + mis.Text + " " + ms.Salle;
-                    noeudOpéra.Nodes.Add(mis);
-                    #endregion
-                }
-            foreach (Roles r in disque.Opéra.Roles.OrderBy(rr => rr.Role))
-            {
-                #region Interprétations
-                TreeNode nn = new TreeNode(r.Role + " (" + r.Voix + ")");
-                var u = disque.Interprétation.Where(y => y.Roles == r);
-                Interprétation i;
-                if (u.Count() > 0)
-                {
-                    i = u.First();
-                    nn.Text += " : " + i.Musicien.Prénom_Musicien + " " + i.Musicien.Nom_Musicien + " (" + i.Musicien.Instrument.Nom_Instrument + ")";
-                    Musicien mus = i.Musicien;
-                    if (!arbre.ImageList.Images.ContainsKey(mus.Code_Musicien.ToString()))
+                    break;
+                case Musicien musicien:
+                    musicien.ActivitésMusicien(arbre.SelectedNode);
+                    break;
+                case Roles role:
+                    foreach (Interprétation interp in role.Interprétation.OrderBy(c => c.Disques.Opéra.Titre))
                     {
-                        if (mus.Photo != null)
+                        if (arbre == arbreMusiciens)
                         {
-                            MemoryStream ms = new MemoryStream(mus.Photo);
-                            Image im = Image.FromStream(ms);
-                            arbre.ImageList.Images.Add(mus.Code_Musicien.ToString(), im);
-                            nn.ImageKey = mus.Code_Musicien.ToString();
-                            nn.SelectedImageKey = nn.ImageKey;
-                            im.Dispose();
+                            if (arbre.SelectedNode.Parent.Tag.ToString() != interp.Musicien.ToString())
+                            {
+                                TreeNode tni = interp.Musicien.CréeNoeudMusicien();
+                                tni.Tag = interp;
+                                arbre.SelectedNode.Nodes.Add(tni);
+                            }
+                            else
+                            {
+                                interp.Disques.CréeNoeudDisque(arbre.SelectedNode);
+                            }
                         }
                     }
-                    else
+                    break;
+                case Marqueurs marqueur:
                     {
-                        nn.ImageKey = mus.Code_Musicien.ToString();
-                        nn.SelectedImageKey = nn.ImageKey;
+                        if (marqueur.Adresse != null)
+                            player.Position.FromBegin = new TimeSpan((long)marqueur.Adresse);
                     }
-                }
-                else
-                {
-                    i = new Interprétation { Roles = r, Disques = disque };
-                    nn.Text += " : Inconnu";
-                }
-                nn.Tag = i;
-                noeudOpéra.Nodes.Add(nn);
-                #endregion
-            }
-            arbre.SelectedNode.ExpandAll();
-            return noeudOpéra;
-            #endregion
-        }
-        private void Mn_Click(object sender, EventArgs e)
-        {
-            TreeView arbre = (TreeView)((MenuItem)sender).Parent.Tag;
-            var tag = arbre.SelectedNode.Tag;
-            String text = ((MenuItem)sender).Text;
-            if (tag is Musicien musicien)
-            {
-                switch (text)
-                {
-                    case "Nouveau":
-                        musicien = new Musicien();
-                        break;
-                    default:
-                        break;
-                }
-                MiseAJourObjet mf = new MiseAJourObjet(musicien, md, arbre.SelectedNode);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-                    arbre.SelectedNode.Text = musicien.Nom_Musicien + "  " + musicien.Prénom_Musicien;
-                    if (musicien.Photo != null)
-                    {
-                        Image im = Image.FromStream(new MemoryStream(musicien.Photo));
-                        arbre.ImageList.Images.Add(musicien.Code_Musicien.ToString(), im);
-                        arbre.SelectedNode.ImageKey = musicien.Code_Musicien.ToString();
-                        arbre.SelectedNode.SelectedImageKey = arbre.SelectedNode.ImageKey;
-                        im.Dispose();
-                    }
-                }
-            }
-            if (tag is MiseEnScene misenScène)
-            {
-                MiseAJourObjet mf = new MiseAJourObjet(misenScène, md, arbre.SelectedNode);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-                    if (misenScène.Musicien != null)
-                    {
-                        Disques d = (Disques)arbre.SelectedNode.Parent.Tag;
-                        d.MiseEnScene.Add(misenScène);
-                        arbre.SelectedNode.Text = "Mise en scène : " + misenScène.Musicien.ToString();
-                    }
-                }
-            }
-            if (tag is Orchestres orchestre)
-            {
+                    break;
+                case Disques disque:
 
-            }
-            if (tag is Diriger diriger)
-            {
-                MiseAJourObjet mf = new MiseAJourObjet(tag, md, arbre.SelectedNode);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-                    arbre.SelectedNode.Text = diriger.Orchestres.ToString();
-                    arbre.SelectedNode.Nodes.Clear();
-                    if (((Diriger)tag).Musicien != null)
+                    disque.CréeNoeudDisque(arbre.SelectedNode);
+                    if (!string.IsNullOrEmpty(disque.URL))
                     {
-                        TreeNode chef = new TreeNode(diriger.Musicien.ToString())
+                        Visionner(panel, disque);
+                        Text = "Opéras : " + Path.GetFileName(disque.Fichier);
+                    }
+                    else { MessageBox.Show("Pas de version numérique"); }
+                    break;
+                case Opéra opera:
+                    foreach (Roles r in opera.Roles)
+                    {
+                        TreeNode tr = new TreeNode(r.Role + " (" + r.Voix + ")")
                         {
-                            Tag = diriger.Musicien
+                            Tag = r
                         };
-                        arbre.SelectedNode.Nodes.Add(chef);
+                        arbre.SelectedNode.Nodes.Add(tr);
+                        foreach (Interprétation u in r.Interprétation)
+                        {
+                            tr.Nodes.Add(u.Musicien.CréeNoeudMusicien());
+                        }
                     }
-                    if (diriger.Code_Disque == 0)
+                    break;
+                case Interprétation interpretation:
+                    TreeNode tn = new TreeNode(interpretation.Disques.Editeur.NomEditeur + " " + interpretation.Disques.Année.ToString())
                     {
-                        md.Diriger.Add(diriger);
-                        md.SaveChanges();
-                    }
-                }
-            }
-            if (tag is Interprétation interprétation)
-            {
-                switch (text)
-                {
-                    case "Modifier interprétation":
-                        MiseAJourObjet mf = new MiseAJourObjet(tag, md, arbre.SelectedNode);
-                        if (mf.ShowDialog() == DialogResult.OK)
-                        {
-                            if (interprétation.Musicien != null)
-                            {
-                                MetàJourInterprétation(interprétation, arbre);
-                            }
-                        }
-                        break;
-                    case "Modifier interprète":
-                        mf = new MiseAJourObjet(interprétation.Musicien, md, arbre.SelectedNode);
-                        if (mf.ShowDialog() == DialogResult.OK)
-                        {
-                            if (interprétation.Musicien != null)
-                            {
-                                MetàJourInterprétation(interprétation, arbre);
-                            }
-                        }
+                        Tag = interpretation.Disques
+                    };
+                    if (!String.IsNullOrEmpty(interpretation.Disques.Fichier))
+                        tn.Text += " " + interpretation.Disques.Fichier;
+                    arbre.SelectedNode.Nodes.Add(tn);
+                    break;
+                case LienYouTube lien:
 
-                        break;
-                    default:
-                        break;
-                }
-                if (interprétation.Musicien == null)
-                {
-                    MiseAJourObjet mf = new MiseAJourObjet(tag, md);
-                    if (mf.ShowDialog() == DialogResult.OK)
-                    {
-                        if (interprétation.Musicien != null)
-                        {
-                            MetàJourInterprétation(interprétation, arbre);
-                        }
-                    }
-                }
-                //else
-                //{
-                //    MusicienForm mf = new MusicienForm(((Interprétation)x).Musicien, md, arbreFichiers.SelectedNode);
-                //    if (mf.ShowDialog() == DialogResult.OK)
-                //    {
-                //        MetàJourInterprétation((Interprétation)x);
-                //    }
-                //}
+                    lien.Play();
+                    break;
             }
-            if (tag is Disques disque)
-            {
-                disque.Fichier = Path.GetFileName(arbre.SelectedNode.Text);
-                disque.Format = Path.GetExtension(disque.Fichier).Replace(".", "").ToUpper();
-                disque.Audio = "Stéréo";
-                if (String.IsNullOrEmpty(disque.Source)) disque.Source = "Téléchargement";
-                MiseAJourObjet mf = new MiseAJourObjet(tag, md, arbre.SelectedNode.Parent);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-
-                }
-            }
-            if (tag is Opéra opera)
-            {
-                MiseAJourObjet mf = new MiseAJourObjet(tag, md, arbre.SelectedNode.Parent);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-
-                }
-
-            }
+            arbre.SelectedNode.Expand();
         }
-        private void MetàJourInterprétation(Interprétation interprétation, TreeView arbre)
-        {
-            if (arbre.SelectedNode.Text.EndsWith("Inconnu"))
-            {
-                md.Interprétation.Add(interprétation);
-                md.SaveChanges();
-            }
-            arbre.SelectedNode.Text = interprétation.Roles.Role + " (" + interprétation.Roles.Voix + ")" + " : " + interprétation.Musicien.Nom_Musicien + " " + interprétation.Musicien.Prénom_Musicien + " (" + interprétation.Musicien.Instrument.Nom_Instrument + ")";
-            if (interprétation.Musicien.Photo != null)
-            {
-                MemoryStream ms = new MemoryStream(interprétation.Musicien.Photo);
-                Image im = Image.FromStream(ms);
-                arbre.ImageList.Images.Add(interprétation.Musicien.Code_Musicien.ToString(), im);
-                arbre.SelectedNode.ImageKey = interprétation.Musicien.Code_Musicien.ToString();
-                arbre.SelectedNode.SelectedImageKey = arbreFichiers.SelectedNode.ImageKey;
-                im.Dispose();
-            }
-        }
-        //private void arbreFichiers_MouseClick(object sender, MouseEventArgs e)
-        //{
-        //    if (e.Button == MouseButtons.Right)
-        //    {
-        //        ContextMenu cm = new ContextMenu();
-        //        if (arbreFichiers.SelectedNode != null)
-        //        {
-        //            string type = arbreFichiers.SelectedNode.Tag.GetType().BaseType.Name;
-        //            string[] menus = { "Modifier " + type };
-        //            if (arbreFichiers.SelectedNode.Tag is Interprétation)
-        //            {
-        //                if (!arbreFichiers.SelectedNode.Text.EndsWith("Inconnu"))
-        //                    menus = new string[] { "Modifier interprétation", "Modifier interprète" };
-        //            }
-        //            foreach (string s in menus)
-        //            {
-        //                MenuItem mn = new MenuItem(s);
-        //                mn.Click += Mn_Click;
-        //                cm.MenuItems.Add(mn);
-        //            }
-        //            cm.Show(this, arbreFichiers.SelectedNode.Bounds.Location);
-        //            var x = arbreFichiers.SelectedNode.Tag;
-        //            if (x is Musicien)
-        //            {
-
-        //            }
-
-        //        }
-
-        //    }
-        //}
         private void Arbre_MouseClick(object sender, MouseEventArgs e)
         {
             TreeView arbre = (TreeView)sender;
@@ -975,7 +850,45 @@ namespace ListeOpéras
                 if (arbre.Name != arbreFichiers.Name)
                 {
                     #region Traitement d'un noeud
-                    TraiteNoeud(arbre);
+                    switch (arbre.SelectedNode.Tag)
+                    {
+                        case Musicien musicien:
+                            if (musicien.Metajour())
+                            {
+                                if (musicien.Photo != null)
+                                {
+                                    musicien.MetàJourImageMusicien(arbre.SelectedNode/*, musicien*/);
+                                }
+                            }
+                            break;
+                        case Opéra opera:
+                            opera.Metajour();
+                            break;
+                        case Disques disque:
+                            if (disque.Metajour())
+                            {
+                                if (disque.Pochette != null)
+                                {
+                                    Image im = Image.FromStream(new MemoryStream(disque.Pochette));
+                                    if (!arbre.ImageList.Images.ContainsKey(disque.Code_Disque.ToString()))
+                                        arbre.ImageList.Images.Add(disque.Code_Disque.ToString(), im);
+                                    arbre.SelectedNode.ImageKey = disque.Code_Disque.ToString();
+                                    arbre.SelectedNode.SelectedImageKey = arbre.SelectedNode.ImageKey;
+                                    im.Dispose();
+                                }
+                            }
+                            break;
+                        case LienYouTube lien:
+                            lien.Play();// Process.Start(chrome, lien.YouTube);
+                            break;
+                        case ASIN asin:
+                            string url = "https://www.amazon.fr/dp/" + asin;
+                            Process.Start(chrome, url);
+                            break;
+                        default:
+                            CréeMenu(arbre);
+                            break;
+                    }
                     #endregion
                 }
                 else
@@ -983,50 +896,17 @@ namespace ListeOpéras
                     CréeMenu(arbre);
                 }
             }
+            else arbre.SelectedNode.Toggle();
+
         }
-        private void TraiteNoeud(TreeView arbre)
-        {
-            var x = arbre.SelectedNode.Tag;
-            if (x is Musicien)
-            {
-                MiseAJourObjet mf = new MiseAJourObjet(x, md);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-
-                }
-            }
-            if (x is Opéra oper)
-            {
-
-                MiseAJourObjet mf = new MiseAJourObjet(x, md);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-
-                }
-            }
-            if (x is Disques)
-            {
-
-                MiseAJourObjet mf = new MiseAJourObjet(x, md);
-                if (mf.ShowDialog() == DialogResult.OK)
-                {
-                    if (((Disques)x).Pochette != null)
-                    {
-
-                    }
-                }
-            }
-            else
-            {
-                CréeMenu(arbre);
-            }
-        }
+         #endregion
+        #region Méthodes d'usage commun
         private void CréeMenu(TreeView arbre)
         {
-            ContextMenu cm = new ContextMenu();
+            ContextMenu contextMenu = new ContextMenu();
             //if ((arbre.SelectedNode != null) && (arbre.SelectedNode.Tag != null))
             string type = arbre.SelectedNode.Tag.GetType().BaseType.Name;
-            if (type == "Object")
+            if( (type == "Object")|(type=="BaseClass"))
             {
                 type = arbre.SelectedNode.Tag.GetType()/*.BaseType*/.Name;
             }
@@ -1034,41 +914,215 @@ namespace ListeOpéras
             if (arbre.SelectedNode.Tag is Interprétation)
             {
                 if (!arbre.SelectedNode.Text.EndsWith("Inconnu"))
-                    menus = new string[] { "Modifier interprétation", "Modifier interprète" };
+                    menus = new string[] { "Modifier Interprétation", "Modifier interprète" };
             }
             foreach (string s in menus)
             {
-                MenuItem mn = new MenuItem(s);
-                mn.Click += Mn_Click;
-                cm.MenuItems.Add(mn);
+                MenuItem menuItem = new MenuItem(s);
+                menuItem.Click += Menu_Click;
+                contextMenu.MenuItems.Add(menuItem);
             }
             Point p = arbre.SelectedNode.Bounds.Location;
-            //        p = arbre.PointToClient(p);
-            cm.Show(this, p);
-            cm.Tag = arbre;
+            contextMenu.Show(this, p);
+            contextMenu.Tag = arbre;
         }
-        private void TabControl_Click(object sender, EventArgs e)
+        private void Menu_Click(object sender, EventArgs e)
         {
-            ((TabControl)sender).Select();
-        }
-        private void ArbreFichiers_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-            if (((TreeNode)arbreFichiers.SelectedNode).Tag is Disques)
+            TreeView arbre = (TreeView)((MenuItem)sender).Parent.Tag;
+            var tag = arbre.SelectedNode.Tag;
+            String text = ((MenuItem)sender).Text;
+            switch (tag)
             {
-                Disques d = (Disques)((TreeNode)arbreFichiers.SelectedNode).Tag;
-                String path = Path.GetDirectoryName(d.FullPath);
-                ProcessStartInfo startInfo = new ProcessStartInfo();
-                startInfo.FileName = d.FullPath;
-                Process p = Process.Start(startInfo);
-                //Microsoft.DirectX.AudioVideoPlayback.Video vid = new Microsoft.DirectX.AudioVideoPlayback.Video(d.FullPath);
-                //vid.Owner = splitFichiers.Panel2;
+                case Musicien musicien:
+                    switch (text)
+                    {
+                        case "Nouveau":
+                            musicien = new Musicien();
+                            break;
+                        default:
+                            break;
+                    }
+                    if (musicien.Metajour())
+                    {
+                        arbre.SelectedNode.Text = musicien.Nom_Musicien + "  " + musicien.Prénom_Musicien;
+                        if (musicien.Photo != null)
+                        {
+                            musicien.MetàJourImageMusicien(arbre.SelectedNode/*, musicien*/);
+                        }
+                    }
+                    break;
+                case MiseEnScene misenScène:
+                    if (misenScène.Metajour())
+                    {
+                        if (misenScène.Musicien != null)
+                        {
+                            Disques d = (Disques)arbre.SelectedNode.Parent.Tag;
+                            d.MiseEnScene.Add(misenScène);
+                            arbre.SelectedNode.Text = "Mise en scène : " + misenScène.Musicien.ToString();
+                            if (misenScène.Musicien.Photo != null)
+                            {
+                                misenScène.Musicien.MetàJourImageMusicien(arbre.SelectedNode);
+
+                            }
+                        }
+                    }
+                    break;
+                case Marqueurs marqueur:
+                    MiseAJourObjet mfe = new MiseAJourObjet(marqueur, arbre.SelectedNode);
+                        if (mfe.ShowDialog() == DialogResult.OK)
+                        {
+                            string[] s = marqueur.Date.Split(':');
+                            int h = int.Parse(s[0]);
+                            int mn = int.Parse(s[1]);
+                            int sec = int.Parse(s[2]);
+                            TimeSpan ticks = new TimeSpan(h, mn, sec);
+                            marqueur.Adresse = ticks.Ticks;
+                            arbre.SelectedNode.Text = marqueur.ToString();
+                        }
+                    //marqueur.Metajour();
+                    break;
+                case Orchestres orchestre:
+                    orchestre.Metajour();
+                    break;
+                case Diriger diriger:
+                    if (diriger.Metajour())
+                    {
+                        arbre.SelectedNode.Text = diriger.Orchestres.ToString();
+                        arbre.SelectedNode.Nodes.Clear();
+                        if (((Diriger)tag).Musicien != null)
+                        {
+                            TreeNode chef = new TreeNode(diriger.Musicien.ToString())
+                            {
+                                Tag = diriger.Musicien
+                            };
+                            arbre.SelectedNode.Nodes.Add(chef);
+                        }
+                        if (diriger.Code_Disque == 0)
+                        {
+                            md.Diriger.Add(diriger);
+                            md.SaveChanges();
+                        }
+                    }
+                    break;
+                case Interprétation interprétation:
+                    switch (text)
+                    {
+                        case "Modifier Interprétation":
+                        case "Modifier interprétation":
+                            MiseAJourObjet mfx = new MiseAJourObjet(tag/*, md*/, arbre.SelectedNode);
+                            if (mfx.ShowDialog() == DialogResult.OK)
+                            {
+                                if (interprétation.Musicien != null)
+                                {
+                                    MetàJourInterprétation(interprétation, arbre);
+                                }
+                            }
+                            break;
+                        case "Modifier interprète":
+                            mfx = new MiseAJourObjet(interprétation.Musicien/*, md*/, arbre.SelectedNode);
+                            if (mfx.ShowDialog() == DialogResult.OK)
+                            {
+                                if (interprétation.Musicien != null)
+                                {
+                                    MetàJourInterprétation(interprétation, arbre);
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    if (interprétation.Musicien == null)
+                    {
+                        MiseAJourObjet mfo = new MiseAJourObjet(tag/*, md*/);
+                        if (mfo.ShowDialog() == DialogResult.OK)
+                        {
+                            if (interprétation.Musicien != null)
+                            {
+                                MetàJourInterprétation(interprétation, arbre);
+                            }
+                        }
+                    }
+                    break;
+                case Disques disque:
+                    disque.Fichier = Path.GetFileName(arbre.SelectedNode.Text);
+                    disque.Format = Path.GetExtension(disque.Fichier).Replace(".", "").ToUpper();
+                    disque.Audio = "Stéréo";
+                    if (String.IsNullOrEmpty(disque.Source)) disque.Source = "Téléchargement";
+                    disque.Metajour(arbre.SelectedNode);
+                    break;
+                case Opéra opera:
+                    MiseAJourObjet mf = new MiseAJourObjet(opera, arbre.SelectedNode.Parent);
+                    if (mf.ShowDialog() == DialogResult.OK)
+                    {
+
+                    }
+                    break;
+                case LienYouTube lien:
+                    MiseAJourObjet mfa = new MiseAJourObjet(lien, arbre.SelectedNode.Parent);
+                    if (mfa.ShowDialog() == DialogResult.OK)
+                    {
+                        //          arbre.SelectedNode.Text=
+                    }
+                    break;
             }
         }
-        private void RefreshButton_Click(object sender, EventArgs e)
+        private void MetàJourInterprétation(Interprétation interprétation, TreeView arbre)
         {
-            CréeArbreFichiers();
+            if (arbre.SelectedNode.Text.EndsWith("Inconnu"))
+            {
+                if (interprétation.Code_Interprétation == 0)
+                    md.Interprétation.Add(interprétation);        
+            }
+            md.SaveChanges();
+            arbre.SelectedNode.Text = interprétation.Roles.Role + " (" + interprétation.Roles.Voix + ")" + " : " + interprétation.Musicien.Nom_Musicien + " " + interprétation.Musicien.Prénom_Musicien + " (" + interprétation.Musicien.Instrument.Nom_Instrument + ")";
+            if (interprétation.Musicien.Photo != null)
+            {
+                interprétation.Musicien.MetàJourImageMusicien(arbre.SelectedNode);
+    //            MetàJourImageMusicien(arbre, interprétation.Musicien);
+            }
         }
-
+        //private static void MetàJourImageMusicien(TreeView arbre, Musicien musicien)
+        //{
+        //    MemoryStream ms = new MemoryStream(musicien.Photo);
+        //    Image im = Image.FromStream(ms);
+        //    if (!arbre.ImageList.Images.ContainsKey(musicien.Code_Musicien.ToString()))
+        //        arbre.ImageList.Images.Add(musicien.Code_Musicien.ToString(), im);
+        //    arbre.ImageList.Images.Add(musicien.Code_Musicien.ToString(), im);
+        //    arbre.SelectedNode.ImageKey = musicien.Code_Musicien.ToString();
+        //    arbre.SelectedNode.SelectedImageKey = arbre.SelectedNode.ImageKey;
+        //    im.Dispose();
+        //}
+        #endregion
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (player == null) return true; ;
+            Console.WriteLine(keyData);
+            switch (keyData)
+            {
+                case Keys.F8:
+                    player.FullScreen = true;
+                    break;
+                case Keys.F11:
+                    player.FullScreen = false;
+                    break;
+                case Keys.F9:
+                    player.Video.Zoom(1.1);              
+                    break;
+                case Keys.F10:
+                    player.Video.Zoom(0.9);
+                    break;
+                //case Keys.VolumeUp:
+                //    break;
+                //case Keys.VolumeDown:
+                //    break;
+                default:
+                    Console.WriteLine(keyData);
+                    break;
+            }
+            return false;
+            // Call the base class
+      //      return base.ProcessCmdKey(ref msg, keyData);
+        }
 
     }
 }

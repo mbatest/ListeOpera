@@ -10,12 +10,12 @@ namespace ListeOpéras
     {
         public event EventHandler Changed;
         public Image Image;
-        System.Drawing.Point origin = System.Drawing.Point.Empty;
         bool mouvement;
-        System.Drawing.Point départ = System.Drawing.Point.Empty;
+        Point origin = Point.Empty;
+        Point départ = Point.Empty;
         float zoom = 1;
         byte[] buffer;
-        System.Drawing.Point startSelection;
+        Point startSelection;
         double Contrast = 1;
         Rectangle selection = Rectangle.Empty;
         public ScrollPicture()
@@ -65,8 +65,10 @@ namespace ListeOpéras
             }
             if (selection.Width > 0 & selection.Height > 0)
             {
-                Pen p = new Pen(Brushes.Red, 3);
-                p.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
+                Pen p = new Pen(Brushes.Red, 3)
+                {
+                    DashStyle = System.Drawing.Drawing2D.DashStyle.Dot
+                };
                 e.Graphics.DrawRectangle(p, selection);
             }
         }
@@ -97,7 +99,7 @@ namespace ListeOpéras
                     foreach (string mt in menuText)
                     {
                         MenuItem mi = new MenuItem(mt);
-                        mi.Click += mi_Click;
+                        mi.Click += Mi_Click;
                         cm.MenuItems.Add(mi);
                     }
                     cm.Show(this, this.PointToClient(Cursor.Position));
@@ -111,7 +113,7 @@ namespace ListeOpéras
             }
             Refresh();
         }
-        void mi_Click(object sender, EventArgs e)
+        void Mi_Click(object sender, EventArgs e)
         {
             switch (((MenuItem)sender).Text)
             {
@@ -169,14 +171,12 @@ namespace ListeOpéras
             if (Clipboard.GetDataObject().GetDataPresent(DataFormats.Bitmap))
             {
                 Image = (Bitmap)Clipboard.GetDataObject().GetData(DataFormats.Bitmap);
-                if (Changed != null)
-                    Changed(this, new EventArgs());
+                Changed?.Invoke(this, new EventArgs());
             }
             if (Clipboard.ContainsImage())
             {
                 Image = Clipboard.GetImage();
-                if (Changed != null)
-                    Changed(this, new EventArgs());
+                Changed?.Invoke(this, new EventArgs());
                 Refresh();
             }
         }
@@ -187,7 +187,7 @@ namespace ListeOpéras
             if (im != null)
             {
                 zoom = 1;
-                origin = System.Drawing.Point.Empty;
+                origin = Point.Empty;
                 if (im != null)
                 {
                     //vScrollBar1.Maximum = im.Height;
@@ -208,7 +208,7 @@ namespace ListeOpéras
             else
                 Image = null;
             zoom = 1;
-            origin = System.Drawing.Point.Empty;
+            origin = Point.Empty;
 
             if (Image != null)
             {
@@ -221,26 +221,26 @@ namespace ListeOpéras
         }
         public void SetImageF(string image, bool locked)
         {
-            origin = System.Drawing.Point.Empty;
             if (String.IsNullOrEmpty(image)) return;
             if (!String.IsNullOrEmpty(image))
             {
                 MemoryStream ms = new MemoryStream(new WebClient().DownloadData(image));
                 Image = System.Drawing.Image.FromStream(ms);
             }
-  //          Image = Image.FromFile(image);
-            if (Image != null)
+            //          Image = Image.FromFile(image);
+            origin = Point.Empty;
+           if (Image != null)
             {
                 //vScrollBar1.Maximum = Image.Height;
                 //hScrollBar1.Maximum = Image.Width;
                 if (!locked)
                 {
                     zoom = (float)Height / Image.Height;
-                    origin = System.Drawing.Point.Empty;
+                    origin = Point.Empty;
                 }
             }
             selection = Rectangle.Empty;
-            startSelection = System.Drawing.Point.Empty;
+            startSelection = Point.Empty;
             Refresh();
         }
         public byte[] GetImage()
@@ -286,11 +286,6 @@ namespace ListeOpéras
                 mouvement = false;
                 Cursor = Cursors.Default;
             }
-        }
-
-        private void ScrollPicture_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-
         }
         public void SetContrast(double contrast, ref Image _currentBitmap)
         {

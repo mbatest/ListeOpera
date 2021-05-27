@@ -5,16 +5,14 @@ using System.IO;
 using System.Text;
 
 namespace Controles
-
 {
     public partial class Visionneuse : Form
     {
-        Player player = new Player();
+        readonly Player player = new Player();
         bool enPause = false;
-        AudioDevice[] audioDevices;
+        readonly AudioDevice[] audioDevices;
         public static string BOM = Encoding.Unicode.GetString(Encoding.Unicode.GetPreamble());
-
-        public Visionneuse()
+        public Visionneuse(string Filename)
         {
             InitializeComponent();
             player = new Player(panneau);
@@ -23,40 +21,24 @@ namespace Controles
             player.Sliders.Position.TrackBar = positionSlider;
             sousTitre.Visible = false;
 
-            audioDevices =  player.Audio.GetDevices();
+            audioDevices = player.Audio.GetDevices();
             player.Audio.Device = audioDevices[1];
-            volumeDial.Value = 50;
+            volumeDial.Value = 500;
+            player.Audio.Volume = volumeDial.Value;
             volumeDial.ValueChanged += VolumeDial_ValueChanged;
             balanceDial.ValueChanged += BalanceDial_ValueChanged;
-            volumeDial.Value = 50;
             zoomInButton.MouseWheel += ZoomInButton_MouseWheel;
             zoomOutButton.MouseWheel += ZoomInButton_MouseWheel;
-
-        }
-        private void Events_MediaEnded(object sender, EndedEventArgs e)
-        {
-         //   throw new NotImplementedException();
-        }
-        private void Events_MediaPositionChanged(object sender, PositionEventArgs e)
-        {
-            position1.Text = TimeSpan.FromTicks(e.FromStart).ToString(@"hh\:mm\:ss");
-            position2.Text = TimeSpan.FromTicks(e.ToStop).ToString(@"hh\:mm\:ss");
-        }
-        public void Init(string Filename)
-        {
-            if (player != null)
+            player.Play(Filename.Replace(BOM, ""), panneau);
+            if (Filename.EndsWith("mp4"))
             {
-                player.Play(Filename.Replace(BOM, ""), panneau);
-                if (Filename.EndsWith("mp4"))
+                string f = Filename.Replace("mp4", "srt");
+                if (File.Exists(f))
                 {
-                    string f = Filename.Replace("mp4", "srt");
-                    if (File.Exists(f))
-                    {
-                        player.Subtitles.FileName = f;
-                        player.Events.MediaSubtitleChanged += Events_MediaSubtitleChanged;
-                        sousTitre.Visible = true;
- 
-                    }
+                    player.Subtitles.FileName = f;
+                    player.Events.MediaSubtitleChanged += Events_MediaSubtitleChanged;
+                    sousTitre.Visible = true;
+
                 }
             }
             if (player.LastError)
@@ -65,30 +47,40 @@ namespace Controles
                 Console.WriteLine(player.GetErrorString(player.LastErrorCode));
             }
         }
+        private void Events_MediaEnded(object sender, EndedEventArgs e)
+        {
+            //   throw new NotImplementedException();
+        }
+        private void Events_MediaPositionChanged(object sender, PositionEventArgs e)
+        {
+            position1.Text = TimeSpan.FromTicks(e.FromStart).ToString(@"hh\:mm\:ss");
+            position2.Text = TimeSpan.FromTicks(e.ToStop).ToString(@"hh\:mm\:ss");
+        }
         private void Events_MediaSubtitleChanged(object sender, SubtitleEventArgs e)
         {
             sousTitre.Text = e.Subtitle;
-            sousTitre.Left = /*panel1.Left +*/ (panneau.Width - sousTitre.Width) / 2;
+            sousTitre.Visible = true;
+            sousTitre.Left = (panneau.Width - sousTitre.Width) / 2;
         }
-        private void pause_Click(object sender, EventArgs e)
+        private void Pause_Click(object sender, EventArgs e)
         {
             player.Paused = !player.Paused;
 
-            enPause = enPause ? false : true;
+            enPause = !enPause;
             if (enPause) player.Pause();
             else player.Resume();
         }
-        private void next_Click(object sender, EventArgs e)
+        private void Next_Click(object sender, EventArgs e)
         {
             player.Position.FromBegin += TimeSpan.FromSeconds(1);
         }
-        private void prev_Click(object sender, EventArgs e)
+        private void Prev_Click(object sender, EventArgs e)
         {
             player.Position.FromBegin -= TimeSpan.FromSeconds(1);
         }
         private void Visionneuse_Resize(object sender, EventArgs e)
         {
-            sousTitre.Left = (panneau.Width- sousTitre.Width )/ 2;
+            sousTitre.Left = (panneau.Width - sousTitre.Width) / 2;
             Refresh();
         }
 
@@ -104,7 +96,7 @@ namespace Controles
 
         private void VolumeDial_ValueChanged(object sender, EventArgs e)
         {
-            player.Audio.Volume =volumeDial.Value * 0.1f;
+            player.Audio.Volume = volumeDial.Value * 0.1f;
         }
         private void BalanceDial_ValueChanged(object sender, Dial.ValueChangedEventArgs e)
         {
@@ -122,6 +114,11 @@ namespace Controles
         void ZoomInButton_MouseWheel(object sender, MouseEventArgs e)
         {
             player.Video.Zoom(e.Delta > 0 ? 1.1 : 0.9);
+        }
+
+        private void VolumeDial_ValueChanged(object sender, Dial.ValueChangedEventArgs e)
+        {
+
         }
     }
 }

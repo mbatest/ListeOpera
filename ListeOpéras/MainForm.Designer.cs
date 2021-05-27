@@ -29,17 +29,19 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
-            this.initiale = new System.Windows.Forms.ToolStripTextBox();
-            this.titreOpéra = new System.Windows.Forms.ToolStripTextBox();
-            this.codeOpéra = new System.Windows.Forms.ToolStripTextBox();
-            this.nombreOpéras = new System.Windows.Forms.ToolStripLabel();
             this.refresh = new System.Windows.Forms.ToolStripButton();
+            this.hide = new System.Windows.Forms.ToolStripButton();
+            this.traductionSousTitre = new System.Windows.Forms.ToolStripButton();
+            this.Nouveau = new System.Windows.Forms.ToolStripButton();
+            this.titre = new System.Windows.Forms.ToolStripComboBox();
+            this.chanteurs = new System.Windows.Forms.ToolStripComboBox();
+            this.nombreOpéras = new System.Windows.Forms.ToolStripLabel();
             this.achetés = new System.Windows.Forms.ToolStripLabel();
-            this.nouveau = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-            this.refreshButton = new System.Windows.Forms.ToolStripButton();
             this.Longueur = new System.Windows.Forms.ToolStripLabel();
             this.splitFichiers = new System.Windows.Forms.SplitContainer();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
@@ -56,6 +58,8 @@
             this.arbreDirection = new System.Windows.Forms.TreeView();
             this.tabMise = new System.Windows.Forms.TabPage();
             this.arbreMise = new System.Windows.Forms.TreeView();
+            this.sound = new Controles.CustomButton();
+            this.volume = new System.Windows.Forms.Label();
             this.zoomInButton = new Controles.CustomButton();
             this.zoomOutButton = new Controles.CustomButton();
             this.Audio = new System.Windows.Forms.Button();
@@ -64,11 +68,13 @@
             this.pause = new Controles.CustomButton();
             this.position2 = new System.Windows.Forms.Label();
             this.positionSlider = new Controles.CustomSlider();
-            this.position1 = new System.Windows.Forms.Label();
+            this.position1 = new System.Windows.Forms.MaskedTextBox();
             this.balanceDial = new Controles.Dial();
             this.volumeDial = new Controles.Dial();
-            this.panel1 = new System.Windows.Forms.Panel();
+            this.panel = new System.Windows.Forms.Panel();
+            this.Argument = new System.Windows.Forms.RichTextBox();
             this.sousTitre = new System.Windows.Forms.Label();
+            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).BeginInit();
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
@@ -90,7 +96,7 @@
             this.tabDirection.SuspendLayout();
             this.tabMise.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.positionSlider)).BeginInit();
-            this.panel1.SuspendLayout();
+            this.panel.SuspendLayout();
             this.SuspendLayout();
             // 
             // splitContainer2
@@ -116,44 +122,21 @@
             // toolStrip1
             // 
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.initiale,
-            this.titreOpéra,
-            this.codeOpéra,
-            this.nombreOpéras,
             this.refresh,
+            this.hide,
+            this.traductionSousTitre,
+            this.Nouveau,
+            this.titre,
+            this.chanteurs,
+            this.nombreOpéras,
             this.achetés,
-            this.nouveau,
             this.toolStripSeparator1,
-            this.refreshButton,
             this.Longueur});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(1040, 25);
             this.toolStrip1.TabIndex = 0;
             this.toolStrip1.Text = "toolStrip1";
-            // 
-            // initiale
-            // 
-            this.initiale.Name = "initiale";
-            this.initiale.Size = new System.Drawing.Size(30, 25);
-            this.initiale.ToolTipText = "Initiale";
-            // 
-            // titreOpéra
-            // 
-            this.titreOpéra.Name = "titreOpéra";
-            this.titreOpéra.Size = new System.Drawing.Size(100, 25);
-            this.titreOpéra.ToolTipText = "Titre";
-            // 
-            // codeOpéra
-            // 
-            this.codeOpéra.Name = "codeOpéra";
-            this.codeOpéra.Size = new System.Drawing.Size(60, 25);
-            // 
-            // nombreOpéras
-            // 
-            this.nombreOpéras.Name = "nombreOpéras";
-            this.nombreOpéras.Size = new System.Drawing.Size(19, 22);
-            this.nombreOpéras.Text = "    ";
             // 
             // refresh
             // 
@@ -165,43 +148,73 @@
             this.refresh.Text = "Rafraichir";
             this.refresh.Click += new System.EventHandler(this.Refresh_Click);
             // 
+            // hide
+            // 
+            this.hide.CheckOnClick = true;
+            this.hide.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.hide.Image = global::ListeOpéras.Properties.Resources.HideMember_6755;
+            this.hide.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.hide.Name = "hide";
+            this.hide.Size = new System.Drawing.Size(23, 22);
+            this.hide.Text = "toolStripButton1";
+            this.hide.Click += new System.EventHandler(this.Hide_Click);
+            // 
+            // traductionSousTitre
+            // 
+            this.traductionSousTitre.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.traductionSousTitre.Image = global::ListeOpéras.Properties.Resources.HiddenField_6028;
+            this.traductionSousTitre.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.traductionSousTitre.Name = "traductionSousTitre";
+            this.traductionSousTitre.Size = new System.Drawing.Size(23, 22);
+            this.traductionSousTitre.Text = "sous titres";
+            this.traductionSousTitre.Click += new System.EventHandler(this.TraductionSousTitre_Click);
+            // 
+            // Nouveau
+            // 
+            this.Nouveau.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.Nouveau.Image = global::ListeOpéras.Properties.Resources.NewDocument_32x32;
+            this.Nouveau.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.Nouveau.Name = "Nouveau";
+            this.Nouveau.Size = new System.Drawing.Size(23, 22);
+            this.Nouveau.Text = "Saisie d\'un nouveau disque";
+            this.Nouveau.Click += new System.EventHandler(this.Nouveau_Click);
+            // 
+            // titre
+            // 
+            this.titre.Name = "titre";
+            this.titre.Size = new System.Drawing.Size(301, 25);
+            this.titre.ToolTipText = "Choix de l\'opéra";
+            this.titre.SelectedIndexChanged += new System.EventHandler(this.Titre_SelectedIndexChanged);
+            // 
+            // chanteurs
+            // 
+            this.chanteurs.Name = "chanteurs";
+            this.chanteurs.Size = new System.Drawing.Size(151, 25);
+            this.chanteurs.ToolTipText = "Choix musicine";
+            this.chanteurs.SelectedIndexChanged += new System.EventHandler(this.Chanteurs_SelectedIndexChanged);
+            // 
+            // nombreOpéras
+            // 
+            this.nombreOpéras.Name = "nombreOpéras";
+            this.nombreOpéras.Size = new System.Drawing.Size(19, 22);
+            this.nombreOpéras.Text = "    ";
+            // 
             // achetés
             // 
             this.achetés.Name = "achetés";
             this.achetés.Size = new System.Drawing.Size(13, 22);
             this.achetés.Text = "  ";
             // 
-            // nouveau
-            // 
-            this.nouveau.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.nouveau.Image = global::ListeOpéras.Properties.Resources.NewDocument_32x32;
-            this.nouveau.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.nouveau.Name = "nouveau";
-            this.nouveau.Size = new System.Drawing.Size(23, 22);
-            this.nouveau.Text = "Nouveau";
-            this.nouveau.Click += new System.EventHandler(this.Nouveau_Click);
-            // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
             this.toolStripSeparator1.Size = new System.Drawing.Size(6, 25);
             // 
-            // refreshButton
-            // 
-            this.refreshButton.CheckOnClick = true;
-            this.refreshButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.refreshButton.Image = global::ListeOpéras.Properties.Resources._112_RefreshArrow_Green_32x32_72;
-            this.refreshButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.refreshButton.Name = "refreshButton";
-            this.refreshButton.Size = new System.Drawing.Size(23, 22);
-            this.refreshButton.Text = "toolStripButton1";
-            this.refreshButton.Click += new System.EventHandler(this.RefreshButton_Click);
-            // 
             // Longueur
             // 
             this.Longueur.Name = "Longueur";
-            this.Longueur.Size = new System.Drawing.Size(86, 22);
-            this.Longueur.Text = "toolStripLabel1";
+            this.Longueur.Size = new System.Drawing.Size(67, 22);
+            this.Longueur.Text = "                    ";
             // 
             // splitFichiers
             // 
@@ -217,7 +230,7 @@
             // 
             // splitFichiers.Panel2
             // 
-            this.splitFichiers.Panel2.Controls.Add(this.panel1);
+            this.splitFichiers.Panel2.Controls.Add(this.panel);
             this.splitFichiers.Size = new System.Drawing.Size(1040, 534);
             this.splitFichiers.SplitterDistance = 345;
             this.splitFichiers.TabIndex = 0;
@@ -238,6 +251,8 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
+            this.splitContainer1.Panel2.Controls.Add(this.sound);
+            this.splitContainer1.Panel2.Controls.Add(this.volume);
             this.splitContainer1.Panel2.Controls.Add(this.zoomInButton);
             this.splitContainer1.Panel2.Controls.Add(this.zoomOutButton);
             this.splitContainer1.Panel2.Controls.Add(this.Audio);
@@ -268,7 +283,6 @@
             this.tabControl.Size = new System.Drawing.Size(345, 448);
             this.tabControl.TabIndex = 2;
             this.tabControl.SelectedIndexChanged += new System.EventHandler(this.TabControl_SelectedIndexChanged);
-            this.tabControl.Click += new System.EventHandler(this.TabControl_Click);
             // 
             // tabFichiers
             // 
@@ -328,7 +342,6 @@
             this.arbreMusiciens.Name = "arbreMusiciens";
             this.arbreMusiciens.Size = new System.Drawing.Size(337, 422);
             this.arbreMusiciens.TabIndex = 0;
-            this.arbreMusiciens.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.Arbre_AfterSelect);
             // 
             // tabRoles
             // 
@@ -384,15 +397,42 @@
             this.arbreMise.Size = new System.Drawing.Size(337, 422);
             this.arbreMise.TabIndex = 0;
             // 
+            // sound
+            // 
+            this.sound.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.sound.Font = new System.Drawing.Font("Webdings", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
+            this.sound.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(173)))), ((int)(((byte)(176)))), ((int)(((byte)(143)))));
+            this.sound.Image = global::ListeOpéras.Properties.Resources.speaker1;
+            this.sound.Location = new System.Drawing.Point(77, 1);
+            this.sound.Name = "sound";
+            this.sound.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.sound.Size = new System.Drawing.Size(28, 22);
+            this.sound.TabIndex = 23;
+            this.sound.Text = "X";
+            this.sound.UseVisualStyleBackColor = true;
+            this.sound.Click += new System.EventHandler(this.Sound_Click);
+            // 
+            // volume
+            // 
+            this.volume.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.volume.AutoSize = true;
+            this.volume.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.volume.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(176)))), ((int)(((byte)(173)))), ((int)(((byte)(146)))));
+            this.volume.Location = new System.Drawing.Point(88, 26);
+            this.volume.Name = "volume";
+            this.volume.Size = new System.Drawing.Size(55, 24);
+            this.volume.TabIndex = 22;
+            this.volume.Text = "0,000";
+            // 
             // zoomInButton
             // 
             this.zoomInButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.zoomInButton.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.zoomInButton.Cursor = System.Windows.Forms.Cursors.Default;
             this.zoomInButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.zoomInButton.Font = new System.Drawing.Font("Webdings", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
+            this.zoomInButton.Font = new System.Drawing.Font("Webdings", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
             this.zoomInButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(173)))), ((int)(((byte)(176)))), ((int)(((byte)(143)))));
-            this.zoomInButton.Location = new System.Drawing.Point(287, 0);
+            this.zoomInButton.Location = new System.Drawing.Point(290, 0);
             this.zoomInButton.Name = "zoomInButton";
             this.zoomInButton.Size = new System.Drawing.Size(28, 24);
             this.zoomInButton.TabIndex = 21;
@@ -405,9 +445,9 @@
             this.zoomOutButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.zoomOutButton.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.zoomOutButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.zoomOutButton.Font = new System.Drawing.Font("Webdings", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
-            this.zoomOutButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(179)))), ((int)(((byte)(176)))), ((int)(((byte)(143)))));
-            this.zoomOutButton.Location = new System.Drawing.Point(314, 0);
+            this.zoomOutButton.Font = new System.Drawing.Font("Webdings", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
+            this.zoomOutButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(173)))), ((int)(((byte)(176)))), ((int)(((byte)(143)))));
+            this.zoomOutButton.Location = new System.Drawing.Point(316, 0);
             this.zoomOutButton.Name = "zoomOutButton";
             this.zoomOutButton.Size = new System.Drawing.Size(28, 24);
             this.zoomOutButton.TabIndex = 20;
@@ -434,12 +474,13 @@
             // next
             // 
             this.next.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.next.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.next.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.next.Font = new System.Drawing.Font("Webdings", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
+            this.next.Font = new System.Drawing.Font("Webdings", 13F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
             this.next.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(173)))), ((int)(((byte)(176)))), ((int)(((byte)(143)))));
-            this.next.Location = new System.Drawing.Point(55, -1);
+            this.next.Location = new System.Drawing.Point(51, 1);
             this.next.Name = "next";
-            this.next.Size = new System.Drawing.Size(28, 24);
+            this.next.Size = new System.Drawing.Size(28, 22);
             this.next.TabIndex = 18;
             this.next.Text = "";
             this.next.UseVisualStyleBackColor = true;
@@ -448,12 +489,13 @@
             // prev
             // 
             this.prev.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.prev.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.prev.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.prev.Font = new System.Drawing.Font("Webdings", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
+            this.prev.Font = new System.Drawing.Font("Webdings", 13F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
             this.prev.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(173)))), ((int)(((byte)(176)))), ((int)(((byte)(143)))));
-            this.prev.Location = new System.Drawing.Point(28, -1);
+            this.prev.Location = new System.Drawing.Point(25, 1);
             this.prev.Name = "prev";
-            this.prev.Size = new System.Drawing.Size(28, 24);
+            this.prev.Size = new System.Drawing.Size(28, 22);
             this.prev.TabIndex = 17;
             this.prev.Text = "";
             this.prev.UseVisualStyleBackColor = true;
@@ -462,12 +504,13 @@
             // pause
             // 
             this.pause.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.pause.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.pause.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.pause.Font = new System.Drawing.Font("Webdings", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
+            this.pause.Font = new System.Drawing.Font("Webdings", 13F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(2)));
             this.pause.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(173)))), ((int)(((byte)(176)))), ((int)(((byte)(143)))));
-            this.pause.Location = new System.Drawing.Point(0, -1);
+            this.pause.Location = new System.Drawing.Point(0, 1);
             this.pause.Name = "pause";
-            this.pause.Size = new System.Drawing.Size(28, 24);
+            this.pause.Size = new System.Drawing.Size(28, 22);
             this.pause.TabIndex = 16;
             this.pause.Text = ";";
             this.pause.UseVisualStyleBackColor = true;
@@ -498,23 +541,28 @@
             // position1
             // 
             this.position1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.position1.AutoSize = true;
+            this.position1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
+            this.position1.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.position1.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.position1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(176)))), ((int)(((byte)(173)))), ((int)(((byte)(146)))));
             this.position1.Location = new System.Drawing.Point(2, 27);
+            this.position1.Mask = "00:00:00";
             this.position1.Name = "position1";
-            this.position1.Size = new System.Drawing.Size(80, 24);
+            this.position1.Size = new System.Drawing.Size(80, 22);
             this.position1.TabIndex = 10;
-            this.position1.Text = "00:00:00";
+            this.position1.Text = "000000";
+            this.position1.Enter += new System.EventHandler(this.Position1_Enter);
+            this.position1.Leave += new System.EventHandler(this.Position1_Leave);
+            this.position1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Position1_MouseDown);
             // 
-            // balandeDial
+            // balanceDial
             // 
             this.balanceDial.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.balanceDial.Image = global::ListeOpéras.Properties.Resources.Dial_Normal_2;
-            this.balanceDial.Location = new System.Drawing.Point(158, 5);
+            this.balanceDial.Location = new System.Drawing.Point(196, 5);
             this.balanceDial.MaximumSize = new System.Drawing.Size(55, 55);
             this.balanceDial.MinimumSize = new System.Drawing.Size(55, 55);
-            this.balanceDial.Name = "balandeDial";
+            this.balanceDial.Name = "balanceDial";
             this.balanceDial.Size = new System.Drawing.Size(55, 55);
             this.balanceDial.TabIndex = 14;
             this.balanceDial.Text = "dial1";
@@ -524,7 +572,7 @@
             // 
             this.volumeDial.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.volumeDial.Image = global::ListeOpéras.Properties.Resources.Dial_Normal_2;
-            this.volumeDial.Location = new System.Drawing.Point(102, 5);
+            this.volumeDial.Location = new System.Drawing.Point(143, 5);
             this.volumeDial.MaximumSize = new System.Drawing.Size(55, 55);
             this.volumeDial.MinimumSize = new System.Drawing.Size(55, 55);
             this.volumeDial.Name = "volumeDial";
@@ -533,14 +581,25 @@
             this.volumeDial.Text = "dial1";
             this.volumeDial.Value = 0;
             // 
-            // panel1
+            // panel
             // 
-            this.panel1.Controls.Add(this.sousTitre);
-            this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel1.Location = new System.Drawing.Point(0, 0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(691, 534);
-            this.panel1.TabIndex = 9;
+            this.panel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
+            this.panel.Controls.Add(this.Argument);
+            this.panel.Controls.Add(this.sousTitre);
+            this.panel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panel.Location = new System.Drawing.Point(0, 0);
+            this.panel.Name = "panel";
+            this.panel.Size = new System.Drawing.Size(691, 534);
+            this.panel.TabIndex = 9;
+            // 
+            // Argument
+            // 
+            this.Argument.Location = new System.Drawing.Point(99, 93);
+            this.Argument.Name = "Argument";
+            this.Argument.Size = new System.Drawing.Size(416, 348);
+            this.Argument.TabIndex = 8;
+            this.Argument.Text = "";
+            this.Argument.Visible = false;
             // 
             // sousTitre
             // 
@@ -548,15 +607,31 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.sousTitre.AutoSize = true;
             this.sousTitre.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
-            this.sousTitre.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold);
+            this.sousTitre.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold);
             this.sousTitre.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(176)))), ((int)(((byte)(173)))), ((int)(((byte)(143)))));
             this.sousTitre.Location = new System.Drawing.Point(167, 482);
             this.sousTitre.Name = "sousTitre";
-            this.sousTitre.Size = new System.Drawing.Size(264, 20);
+            this.sousTitre.Size = new System.Drawing.Size(316, 24);
             this.sousTitre.TabIndex = 7;
             this.sousTitre.Text = "                                                   ";
             this.sousTitre.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             this.sousTitre.Visible = false;
+            // 
+            // imageList1
+            // 
+            this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
+            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageList1.Images.SetKeyName(0, "a0");
+            this.imageList1.Images.SetKeyName(1, "a1");
+            this.imageList1.Images.SetKeyName(2, "a2");
+            this.imageList1.Images.SetKeyName(3, "a3");
+            this.imageList1.Images.SetKeyName(4, "a4");
+            this.imageList1.Images.SetKeyName(5, "a5");
+            this.imageList1.Images.SetKeyName(6, "a6");
+            this.imageList1.Images.SetKeyName(7, "a7");
+            this.imageList1.Images.SetKeyName(8, "a8");
+            this.imageList1.Images.SetKeyName(9, "a9");
+            this.imageList1.Images.SetKeyName(10, "a10");
             // 
             // MainForm
             // 
@@ -564,8 +639,10 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1040, 563);
             this.Controls.Add(this.splitContainer2);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.KeyPreview = true;
             this.Name = "MainForm";
-            this.Text = "Liste opéras";
+            this.Text = "Opéras";
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.splitContainer2.Panel1.ResumeLayout(false);
             this.splitContainer2.Panel1.PerformLayout();
@@ -591,8 +668,8 @@
             this.tabDirection.ResumeLayout(false);
             this.tabMise.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.positionSlider)).EndInit();
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
+            this.panel.ResumeLayout(false);
+            this.panel.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -604,18 +681,13 @@
         private System.Windows.Forms.ToolStripButton refresh;
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.ToolStripLabel achetés;
-        private System.Windows.Forms.ToolStripButton nouveau;
-        private System.Windows.Forms.ToolStripTextBox initiale;
-        private System.Windows.Forms.ToolStripTextBox titreOpéra;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
-        private System.Windows.Forms.ToolStripTextBox codeOpéra;
         private System.Windows.Forms.TabPage tabOpéras;
         private System.Windows.Forms.TabPage tabMusiciens;
         private System.Windows.Forms.TabPage tabFichiers;
         private System.Windows.Forms.SplitContainer splitFichiers;
         private System.Windows.Forms.TreeView arbreFichiers;
         private System.Windows.Forms.TreeView arbreMusiciens;
-        private System.Windows.Forms.ToolStripButton refreshButton;
         private System.Windows.Forms.TabPage tabDirection;
         private System.Windows.Forms.TreeView arbreDirection;
         private System.Windows.Forms.TabPage tabMise;
@@ -624,8 +696,8 @@
         private System.Windows.Forms.TreeView arbreRoles;
         private System.Windows.Forms.ToolStripLabel Longueur;
         private System.Windows.Forms.Label position2;
-        private System.Windows.Forms.Label position1;
-        private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.MaskedTextBox position1;
+        private System.Windows.Forms.Panel panel;
         private System.Windows.Forms.Label sousTitre;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private Controles.Dial volumeDial;
@@ -638,6 +710,15 @@
         private System.Windows.Forms.TreeView arbreOpéras;
         private Controles.CustomButton zoomInButton;
         private Controles.CustomButton zoomOutButton;
+        private System.Windows.Forms.ToolStripButton hide;
+        private System.Windows.Forms.Label volume;
+        private System.Windows.Forms.ToolStripButton traductionSousTitre;
+        private System.Windows.Forms.ToolStripButton Nouveau;
+        private System.Windows.Forms.ToolStripComboBox titre;
+        private System.Windows.Forms.RichTextBox Argument;
+        private System.Windows.Forms.ToolStripComboBox chanteurs;
+        private System.Windows.Forms.ImageList imageList1;
+        private Controles.CustomButton sound;
     }
 }
 

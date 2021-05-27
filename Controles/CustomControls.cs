@@ -83,7 +83,7 @@ namespace Controles
         [EditorBrowsable(EditorBrowsableState.Never)]
         public class ValueChangedEventArgs : EventArgs
         {
-            private Dial _base;
+            private readonly Dial _base;
             private int _value;
 
             public ValueChangedEventArgs(Dial theDial)
@@ -126,15 +126,15 @@ namespace Controles
         private Size _dialSize;
         private int _dialCenter;
 
-        private float _dialSpeed = 2.2F;   // dial speed accelerator / decelerator
+        private readonly float _dialSpeed = 2.2F;   // dial speed accelerator / decelerator
         private float _dialAngle;
 
-        private bool _hasMinMax = true;
-        private float _minMaxUnits = 270 / MAXIMUM_VALUE;
+        private readonly bool _hasMinMax = true;
+        private readonly float _minMaxUnits = 270 / MAXIMUM_VALUE;
 
-        private float _dialAngleMin = -135; // depends on the 'start position' of the used image
-        private float _dialAngleMax = 135;  // and the amount of total rotation (here 2 * 135 = 270)
-        private float _dialAngleUnits = MAXIMUM_VALUE / 270;
+        private readonly float _dialAngleMin = -135; // depends on the 'start position' of the used image
+        private readonly float _dialAngleMax = 135;  // and the amount of total rotation (here 2 * 135 = 270)
+        private readonly float _dialAngleUnits = MAXIMUM_VALUE / 270;
         //private int[]       _dotsX              = { 9, 4, 2, 4, 9, 17, 26, 36, 44, 49, 51, 49, 44 };
         //private int[]       _dotsY              = { 44, 36, 26, 17, 9, 4, 2, 4, 9, 17, 26, 36, 44 };
 
@@ -142,7 +142,7 @@ namespace Controles
         private int _oldLocationY;
 
         private int _value;
-        private ValueChangedEventArgs _valueChangedArgs;
+        private readonly ValueChangedEventArgs _valueChangedArgs;
 
         private bool _disposed;
 
@@ -531,18 +531,18 @@ namespace Controles
         private Rectangle _thumbEraseRect;
         private Rectangle _thumbRect;
 
-        private LinearGradientBrush _normalBrush;
-        private LinearGradientBrush _hotBrush;
-        private LinearGradientBrush _pressedBrush;
+        private readonly LinearGradientBrush _normalBrush;
+        private readonly LinearGradientBrush _hotBrush;
+        private readonly LinearGradientBrush _pressedBrush;
 
         private bool _hotThumb;
         private bool _pressedThumb;
 
-        private LinearGradientBrush _track1Brush;
-        private LinearGradientBrush _track2Brush;
+        private readonly LinearGradientBrush _track1Brush;
+        private readonly LinearGradientBrush _track2Brush;
 
-        private Region _eraseRegion; // to reduce flicker
-        private SolidBrush _eraseBrush;
+        private readonly Region _eraseRegion; // to reduce flicker
+        private readonly SolidBrush _eraseBrush;
 
         private Graphics _graphics;
 
@@ -743,7 +743,7 @@ namespace Controles
         private Rectangle _buttonRect1;
         private Rectangle _buttonRect2;
 
-        private Pen _borderPen;
+        private readonly Pen _borderPen;
         private bool _hotButton;
         private bool _pressedButton;
         private bool _notifyDefault;
@@ -887,7 +887,6 @@ namespace Controles
         {
             // erase background - dropped (dropped rounded corners)
             // pevent.Graphics.FillRectangle(eraseBrush, this.ClientRectangle);
-
             // draw fill
             if (_hotButton)
             {

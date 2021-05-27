@@ -10,13 +10,8 @@ namespace ListeOpéras
     public partial class MiseEnScene
     {
         [Key]
-        [Column(Order = 0)]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int Code_Mise{ get; set; }
         public int Code_Disque { get; set; }
-
-        [Key]
-        [Column(Order = 1)]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int Code_Musicien { get; set; }
 
         [StringLength(50)]

@@ -35,9 +35,13 @@
   <PropertyGroup>
     <StartupObject />
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Movie.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="PVS.MediaPlayer">
-      <HintPath>..\..\..\..\..\Visual Studio 2019\Projets\FolderView\FolderView\bin\Debug\PVS.MediaPlayer.dll</HintPath>
+    <Reference Include="PVS.MediaPlayer, Version=1.3.0.40, Culture=neutral, PublicKeyToken=0fb24ec73040c66e, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\ListeOpéras\bin\PVS.MediaPlayer.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -74,6 +78,7 @@
     <EmbeddedResource Include="Visionneuse.resx">
       <DependentUpon>Visionneuse.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -88,6 +93,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Movie.ico" />
     <Content Include="Ressources\112_RefreshArrow_Green_32x32_72.png" />
     <Content Include="Ressources\base_binoculars_32.png" />
     <Content Include="Ressources\base_checkmark_32.png" />

@@ -24,6 +24,8 @@
         public virtual DbSet<Pays> Pays { get; set; }
         public virtual DbSet<Roles> Roles { get; set; }
         public virtual DbSet<Salles> Salles { get; set; }
+        public virtual DbSet<Marqueurs> Marqueurs { get; set; }
+        public virtual DbSet<Airs> Airs { get; set; }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
@@ -33,16 +35,16 @@
 
             modelBuilder.Entity<Définition>()
                 .HasMany(e => e.Disques)
-                .WithOptional(e => e.Définition1)
-                .HasForeignKey(e => e.Détail_Définition);
+                .WithOptional(e => e.Définition)
+                .HasForeignKey(e => e.Code_Définition);
 
             modelBuilder.Entity<Disques>()
                 .Property(e => e.Prix)
                 .HasPrecision(18, 0);
 
-            modelBuilder.Entity<Disques>()
-                .Property(e => e.Prix_payé)
-                .HasPrecision(18, 0);
+            //modelBuilder.Entity<Disques>()
+            //    .Property(e => e.Prix_payé)
+            //    .HasPrecision(18, 0);
 
             modelBuilder.Entity<Disques>()
                 .HasMany(e => e.Diriger)
